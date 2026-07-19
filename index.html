@@ -9,8 +9,36 @@
 <body>
   <main class="scene" aria-label="Simulace tření">
     <header class="scene-header">
-      <h1>Tření</h1>
+      <div class="scene-header-row">
+        <h1>Tření</h1>
+        <div class="scene-header-actions">
+          <div class="surface-btn-group" role="group" aria-label="Povrch podložky">
+            <button type="button" class="scene-btn" data-surface-type="metal" aria-pressed="true">
+              Kov
+            </button>
+            <button type="button" class="scene-btn" data-surface-type="rubber" aria-pressed="false">
+              Guma
+            </button>
+          </div>
+          <div class="beam-btn-group" role="group" aria-label="Výběr hranolu">
+            <button type="button" class="scene-btn" data-beam-type="wood" aria-pressed="true">
+              Dřevěný hranol
+            </button>
+            <button type="button" class="scene-btn" data-beam-type="steel" aria-pressed="false">
+              Ocelový hranol
+            </button>
+            <button type="button" class="scene-btn" data-beam-type="steelSmall" aria-pressed="false">
+              Malý ocelový hranol
+            </button>
+          </div>
+          <button type="button" class="scene-btn" id="flipBeamBtn" aria-pressed="false">
+            Na boční hranu
+          </button>
+          <button type="button" class="scene-btn" id="resetBtn">Reset</button>
+        </div>
+      </div>
       <p class="scene-hint">Táhni siloměr doprava a táhni hranol.</p>
+      <p class="scene-meta" id="beamMassEl">Hmotnost: 600 g · Objem: 1&nbsp;000 cm³</p>
     </header>
 
     <div class="stage" id="stage" aria-label="Kovová podložka s dřevěným hranolem">
