@@ -1,0 +1,13 @@
+{
+  "name": "treni",
+  "version": "1.0.0",
+  "description": "Tření — interaktivní simulace tření",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "npm start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
