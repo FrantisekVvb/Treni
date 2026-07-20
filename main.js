@@ -123,17 +123,19 @@ const FLAT_HOOK_SILOMER = { x: 373.25, y: 90.75 };
 const EDGE_HOOK_ATTACH = { x: 425.75, y: 122.771 };
 const EDGE_HOOK_SILOMER = { x: 399.25, y: 129.271 };
 const WEIGHT_ARROW_SHAFT_TOP = 0;
-const WEIGHT_ARROW_SHAFT_BOTTOM = 129.5;
-const WEIGHT_ARROW_HEAD_TIP = 130.561;
-const WEIGHT_ARROW_LABEL_X = 65;
-const WEIGHT_ARROW_LABEL_Y = 124.5;
-const WEIGHT_ARROW_SHAFT_X = 11.0459;
+const WEIGHT_ARROW_SHAFT_BOTTOM = 388.5;
+const WEIGHT_ARROW_HEAD_TIP = 391.682;
+const WEIGHT_ARROW_LABEL_X = 89.5;
+const WEIGHT_ARROW_LABEL_Y = 382.136;
+const WEIGHT_ARROW_SHAFT_X = 33.1378;
+const WEIGHT_ARROW_FIGMA_REF_LENGTH = 391.682;
 /** Referenční tíha středního dřevěného hranolu — základní délka šipky */
 const BEAM_WEIGHT_ARROW_REF_N = (WOOD_MASS_G / 1000) * GRAVITY;
 const WEIGHT_ARROW_BASE_LENGTH =
-  WEIGHT_ARROW_HEAD_TIP - WEIGHT_ARROW_SHAFT_TOP;
-/** Zkrácení délky šipky o 2/3, prodloužení o 1/4, pak zkrácení o 1/3 */
-const WEIGHT_ARROW_LENGTH_SCALE = (1 / 3) * (5 / 4) * (2 / 3);
+  WEIGHT_ARROW_FIGMA_REF_LENGTH - WEIGHT_ARROW_SHAFT_TOP;
+/** Stejná vizuální délka jako dříve (Figma šablona je ~3× vyšší) */
+const WEIGHT_ARROW_LENGTH_SCALE =
+  ((1 / 3) * (5 / 4) * (2 / 3) * 130.561) / WEIGHT_ARROW_FIGMA_REF_LENGTH;
 /** Tloušťka šipky — širší tělo a hrot, délka beze změny */
 const WEIGHT_ARROW_BOLD_SCALE = 2;
 const WEIGHT_ARROW_LABEL_PX = 24;
@@ -456,7 +458,7 @@ function getWeightArrowExtension(heightUnits) {
 
 function buildWeightArrowShaftPath(extension) {
   const shaftBottom = WEIGHT_ARROW_SHAFT_BOTTOM + extension;
-  return `M11.0459 0H9.5459V${shaftBottom}H11.0459H12.5459V0H11.0459Z`;
+  return `M33.1378 0H28.6378V${shaftBottom}H33.1378H37.6378V0H33.1378Z`;
 }
 
 function ensureBeamWeightArrow(root) {
@@ -521,6 +523,7 @@ function renderBeamWeightArrow(group, anchor, weightN, heightUnits) {
   text.setAttribute("dominant-baseline", "middle");
   text.setAttribute("class", "weight-display__label-text");
   text.setAttribute("fill", WEIGHT_ARROW_COLOR);
+  text.setAttribute("font-weight", "600");
   text.setAttribute("font-size", String(WEIGHT_ARROW_LABEL_PX / arrowScaleY));
   text.textContent = formatWeightLabel(weightN);
   group.appendChild(text);
@@ -1556,7 +1559,7 @@ function refreshMuEditorIfOpen() {
 }
 
 async function init() {
-  const assetVersion = "20260720-weight-arrow-red";
+  const assetVersion = "20260721-figma-weight-arrow";
   const [sceneResponse, morphResponse, weightResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
