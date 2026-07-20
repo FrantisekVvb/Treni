@@ -25,6 +25,8 @@ const MU_K_LEATHER_STEEL = 0.18;
 const MU_K_CARPET = 1.5;
 /** Dřevo–dřevo */
 const MU_K_WOOD_WOOD = 0.3;
+/** Led: stejné μ_k vůči dřevu i oceli */
+const MU_K_ICE = 0.02;
 /** Nad touto třecí silou se hranol nepohne */
 const FRICTION_IMMOVEABLE_N = 20;
 /** Jmenovitý rozsah siloměru (N) */
@@ -156,9 +158,22 @@ const SURFACE_VARIANTS = {
     ],
     padStroke: "#5C3D1E",
   },
+  ice: {
+    label: "Led",
+    stageLabel: "ledová podložka",
+    padLabel: "Ledová podložka",
+    muKinetic: { wood: MU_K_ICE, steel: MU_K_ICE },
+    padFills: [
+      "url(#icePad0)",
+      "url(#icePad1)",
+      "url(#icePad2)",
+      "url(#icePad3)",
+    ],
+    padStroke: "#6A8FA8",
+  },
 };
 
-const SURFACE_TYPES = ["metal", "leather", "carpet", "wood"];
+const SURFACE_TYPES = ["metal", "leather", "carpet", "wood", "ice"];
 
 const BEAM_VARIANTS = {
   wood: {

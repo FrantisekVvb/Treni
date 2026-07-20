@@ -91,6 +91,23 @@
   <stop stop-color="#9E6828"/>
   <stop offset="1" stop-color="#634018"/>
 </linearGradient>
+<linearGradient id="icePad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#D8EEF8"/>
+  <stop offset="1" stop-color="#9EC4DC"/>
+</linearGradient>
+<linearGradient id="icePad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#F2FAFF"/>
+  <stop offset="0.35" stop-color="#D4EBF7"/>
+  <stop offset="1" stop-color="#A8CFE6"/>
+</linearGradient>
+<linearGradient id="icePad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#B8D9EC"/>
+  <stop offset="1" stop-color="#7FA8C4"/>
+</linearGradient>
+<linearGradient id="icePad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#A8CFE6"/>
+  <stop offset="1" stop-color="#6A94B0"/>
+</linearGradient>
 </defs>
 <g id="pad" aria-label="Kovová podložka">
 <path d="M551.25 16.7734L761.25 96.7734V141.773L551.25 61.7734V16.7734Z" fill="url(#paint0_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
