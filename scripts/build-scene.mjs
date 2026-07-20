@@ -636,6 +636,23 @@ const materialDefs = `
   <stop stop-color="#556845"/>
   <stop offset="1" stop-color="#354532"/>
 </linearGradient>
+<linearGradient id="woodPad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#C9955A"/>
+  <stop offset="1" stop-color="#8B5E2E"/>
+</linearGradient>
+<linearGradient id="woodPad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#F0C38A"/>
+  <stop offset="0.4" stop-color="#D9984F"/>
+  <stop offset="1" stop-color="#B56F2E"/>
+</linearGradient>
+<linearGradient id="woodPad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#A66B30"/>
+  <stop offset="1" stop-color="#6B4520"/>
+</linearGradient>
+<linearGradient id="woodPad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#9E6828"/>
+  <stop offset="1" stop-color="#634018"/>
+</linearGradient>
 `.trim();
 
 const defs = `<defs>\n${materialDefs}\n</defs>`;

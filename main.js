@@ -13,13 +13,18 @@ if (!padWrap) {
 /** N per pixel of pull drag at reference (dřevo, statický práh) */
 const SPRING_K_WOOD = 0.045;
 const WOOD_MASS_G = 600;
-const GRAVITY = 9.81;
+const WOOD_MASS_2KG_G = 2000;
+/** Tíhové zrychlení: 10 N/kg (1 kg → 10 N) */
+const GRAVITY = 10;
+/** Dřevo–kov / kov–dřevo — stejný pár, stejné μ_k */
 const MU_K_METAL_WOOD = 0.4;
 const MU_K_METAL_STEEL = 0.1;
 const MU_K_LEATHER_WOOD = 0.6;
 const MU_K_LEATHER_STEEL = 0.18;
 /** Koberec: stejné μ_k vůči dřevu i oceli */
 const MU_K_CARPET = 1.5;
+/** Dřevo–dřevo */
+const MU_K_WOOD_WOOD = 0.3;
 /** Nad touto třecí silou se hranol nepohne */
 const FRICTION_IMMOVEABLE_N = 20;
 /** Jmenovitý rozsah siloměru (N) */
@@ -67,10 +72,27 @@ const SILOMER_COIL_PATH_INDICES = [
 ];
 const SILOMER_ROD_PATH_INDEX = 3;
 
-/** Hranol 20,3×5,2×9,4 cm = 1000 cm³; malá ocel = ¼ objemu */
+/** Hranol 20,3×5,2×9,4 cm = 1000 cm³; malá ocel = ¼ objemu, malé dřevo = ½ objemu */
 const BEAM_VOLUME_FULL_CM3 = 1000;
 const BEAM_VOLUME_SMALL_CM3 = BEAM_VOLUME_FULL_CM3 / 4;
-const STEEL_DENSITY_G_CM3 = 7850 / BEAM_VOLUME_FULL_CM3;
+const BEAM_VOLUME_WOOD_SMALL_CM3 = BEAM_VOLUME_FULL_CM3 / 2;
+const BEAM_VOLUME_WOOD_2KG_CM3 =
+  (WOOD_MASS_2KG_G * BEAM_VOLUME_FULL_CM3) / WOOD_MASS_G;
+/** Hustota oceli: 8000 kg/m³ = 8 g/cm³ */
+const STEEL_DENSITY_KG_M3 = 8000;
+const STEEL_DENSITY_G_CM3 = STEEL_DENSITY_KG_M3 / 1000;
+
+function woodMassG(volumeCm3) {
+  return (WOOD_MASS_G * volumeCm3) / BEAM_VOLUME_FULL_CM3;
+}
+
+function steelMassG(volumeCm3) {
+  return STEEL_DENSITY_G_CM3 * volumeCm3;
+}
+
+function beamMassG(type, volumeCm3) {
+  return type.startsWith("steel") ? steelMassG(volumeCm3) : woodMassG(volumeCm3);
+}
 
 /** Střed spodní hrany hranolu ve flat/edge scéně (bod na podložce) */
 const FLAT_BEAM_SCALE_ORIGIN = { x: 460, y: 127.523 };
@@ -121,9 +143,22 @@ const SURFACE_VARIANTS = {
     ],
     padStroke: "#2F3D2A",
   },
+  wood: {
+    label: "Dřevo",
+    stageLabel: "dřevěná podložka",
+    padLabel: "Dřevěná podložka",
+    muKinetic: { wood: MU_K_WOOD_WOOD, steel: MU_K_METAL_WOOD },
+    padFills: [
+      "url(#woodPad0)",
+      "url(#woodPad1)",
+      "url(#woodPad2)",
+      "url(#woodPad3)",
+    ],
+    padStroke: "#5C3D1E",
+  },
 };
 
-const SURFACE_TYPES = ["metal", "leather", "carpet"];
+const SURFACE_TYPES = ["metal", "leather", "carpet", "wood"];
 
 const BEAM_VARIANTS = {
   wood: {
@@ -132,9 +167,26 @@ const BEAM_VARIANTS = {
     wire: "#6B3F1C",
     hook: "#2A1A0E",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
-    massG: WOOD_MASS_G,
     label: "Dřevěný hranol",
     stageLabel: "dřevěným hranolem",
+  },
+  wood2kg: {
+    bodyFlat: "url(#beamWoodFlat)",
+    bodyEdge: "url(#beamWoodEdge)",
+    wire: "#6B3F1C",
+    hook: "#2A1A0E",
+    volumeCm3: BEAM_VOLUME_WOOD_2KG_CM3,
+    label: "Dřevěný hranol 2 kg",
+    stageLabel: "dřevěným hranolem 2 kg",
+  },
+  woodSmall: {
+    bodyFlat: "url(#beamWoodFlat)",
+    bodyEdge: "url(#beamWoodEdge)",
+    wire: "#6B3F1C",
+    hook: "#2A1A0E",
+    volumeCm3: BEAM_VOLUME_WOOD_SMALL_CM3,
+    label: "Malý dřevěný hranol",
+    stageLabel: "malým dřevěným hranolem",
   },
   steel: {
     bodyFlat: "url(#beamSteelFlat)",
@@ -142,7 +194,6 @@ const BEAM_VARIANTS = {
     wire: "#3A424A",
     hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
-    massG: 7850,
     label: "Ocelový hranol",
     stageLabel: "ocelovým hranolem",
   },
@@ -152,13 +203,12 @@ const BEAM_VARIANTS = {
     wire: "#3A424A",
     hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_SMALL_CM3,
-    massG: STEEL_DENSITY_G_CM3 * BEAM_VOLUME_SMALL_CM3,
     label: "Malý ocelový hranol",
     stageLabel: "malým ocelovým hranolem",
   },
 };
 
-const BEAM_TYPES = ["wood", "steel", "steelSmall"];
+const BEAM_TYPES = ["wood", "wood2kg", "woodSmall", "steel", "steelSmall"];
 
 let beamEl = null;
 let beamFlatEl = null;
@@ -212,7 +262,11 @@ function hookSilomerPointFromMorph(frameKey) {
 }
 
 function activeBeamVariant() {
-  return BEAM_VARIANTS[beamType];
+  const variant = BEAM_VARIANTS[beamType];
+  return {
+    ...variant,
+    massG: beamMassG(beamType, variant.volumeCm3),
+  };
 }
 
 function activeSurfaceVariant() {
@@ -221,7 +275,7 @@ function activeSurfaceVariant() {
 
 function beamMuKinetic() {
   const surface = activeSurfaceVariant();
-  const key = beamType === "wood" ? "wood" : "steel";
+  const key = beamType.startsWith("wood") ? "wood" : "steel";
   return surface.muKinetic[key];
 }
 
