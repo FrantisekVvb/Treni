@@ -16,13 +16,24 @@ const WOOD_MASS_G = 600;
 const GRAVITY = 9.81;
 const MU_K_METAL_WOOD = 0.4;
 const MU_K_METAL_STEEL = 0.1;
-const MU_K_RUBBER_WOOD = 1;
-const MU_K_RUBBER_STEEL = 0.8;
+const MU_K_LEATHER_WOOD = 0.6;
+const MU_K_LEATHER_STEEL = 0.18;
+/** Koberec: stejné μ_k vůči dřevu i oceli */
+const MU_K_CARPET = 1.5;
+/** Nad touto třecí silou se hranol nepohne */
+const FRICTION_IMMOVEABLE_N = 20;
+/** Jmenovitý rozsah siloměru (N) */
+const SILOMER_RATED_N = 20;
 /** Statické tření = kinematické × tento poměr (původní chování simulace) */
 const MU_STATIC_OVER_KINETIC = 4 / 3;
 const MAX_STRETCH_PX = 120;
-const MAX_BEAM_SLIDE_PX = 180;
-const VIEWBOX_WIDTH = 763;
+const VIEWBOX_WIDTH = 824;
+/** Posun po podložce: směr dlouhé osy horní stěny (Δy/|Δx| = 80/550). */
+const SLIDE_Y_PER_X = 80 / 550;
+/** Max posun hranolu v SVG jednotkách (viewBox šířka 824) */
+const FLAT_MAX_BEAM_SLIDE_SVG = 220;
+/** Edge konec: beam 450.701 → 286.451 (scene-edge-end-user) */
+const EDGE_MAX_BEAM_SLIDE_SVG = 164.25;
 
 function frictionFromMu(massG, muKinetic) {
   const normalN = (massG / 1000) * GRAVITY;
@@ -48,13 +59,13 @@ const BEAM_VOLUME_SMALL_CM3 = BEAM_VOLUME_FULL_CM3 / 4;
 const STEEL_DENSITY_G_CM3 = 7850 / BEAM_VOLUME_FULL_CM3;
 
 /** Střed spodní hrany hranolu ve flat/edge scéně (bod na podložce) */
-const FLAT_BEAM_SCALE_ORIGIN = { x: 260.125, y: 143.378 };
-const EDGE_BEAM_SCALE_ORIGIN = { x: 257.153, y: 189.113 };
-/** Konec háčku hranolu — bod připojení siloměru */
-const FLAT_HOOK_ATTACH = { x: 395, y: 56.1284 };
-const FLAT_HOOK_SILOMER = { x: 421.5, y: 49.6284 };
-const EDGE_HOOK_ATTACH = { x: 371.5, y: 72.7715 };
-const EDGE_HOOK_SILOMER = { x: 398, y: 66.2715 };
+const FLAT_BEAM_SCALE_ORIGIN = { x: 460, y: 127.523 };
+const EDGE_BEAM_SCALE_ORIGIN = { x: 428.4755, y: 189.113 };
+/** Konec háčku hranolu — bod připojení siloměru (siloměr vlevo) */
+const FLAT_HOOK_ATTACH = { x: 399.75, y: 79.7734 };
+const FLAT_HOOK_SILOMER = { x: 373.25, y: 86.2734 };
+const EDGE_HOOK_ATTACH = { x: 425.75, y: 122.771 };
+const EDGE_HOOK_SILOMER = { x: 399.25, y: 129.271 };
 
 const SURFACE_VARIANTS = {
   metal: {
@@ -63,48 +74,69 @@ const SURFACE_VARIANTS = {
     padLabel: "Kovová podložka",
     muKinetic: { wood: MU_K_METAL_WOOD, steel: MU_K_METAL_STEEL },
     padFills: [
-      "url(#paint0_linear_2093_787)",
-      "url(#paint1_linear_2093_787)",
-      "url(#paint2_linear_2093_787)",
-      "url(#paint3_linear_2093_787)",
+      "url(#paint0_linear_2095_869)",
+      "url(#paint1_linear_2095_869)",
+      "url(#paint2_linear_2095_869)",
+      "url(#paint3_linear_2095_869)",
     ],
-    padStroke: "#3E4650",
+    padStroke: "#2F363E",
   },
-  rubber: {
-    label: "Guma",
-    stageLabel: "gumová podložka",
-    padLabel: "Gumová podložka",
-    muKinetic: { wood: MU_K_RUBBER_WOOD, steel: MU_K_RUBBER_STEEL },
-    padFills: ["#454545", "#2E2E2E", "#383838", "#383838"],
-    padStroke: "#1A1A1A",
+  leather: {
+    label: "Kůže",
+    stageLabel: "kožená podložka",
+    padLabel: "Kožená podložka",
+    muKinetic: { wood: MU_K_LEATHER_WOOD, steel: MU_K_LEATHER_STEEL },
+    padFills: [
+      "url(#leatherPad0)",
+      "url(#leatherPad1)",
+      "url(#leatherPad2)",
+      "url(#leatherPad3)",
+    ],
+    padStroke: "#3A2418",
+  },
+  carpet: {
+    label: "Koberec",
+    stageLabel: "kobercová podložka",
+    padLabel: "Kobercová podložka",
+    muKinetic: { wood: MU_K_CARPET, steel: MU_K_CARPET },
+    padFills: [
+      "url(#carpetPad0)",
+      "url(#carpetPad1)",
+      "url(#carpetPad2)",
+      "url(#carpetPad3)",
+    ],
+    padStroke: "#2F3D2A",
   },
 };
 
-const SURFACE_TYPES = ["metal", "rubber"];
+const SURFACE_TYPES = ["metal", "leather", "carpet"];
 
 const BEAM_VARIANTS = {
   wood: {
-    body: "#F1A558",
-    wire: "#5C3A18",
-    hook: "black",
+    bodyFlat: "url(#beamWoodFlat)",
+    bodyEdge: "url(#beamWoodEdge)",
+    wire: "#6B3F1C",
+    hook: "#2A1A0E",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
     massG: WOOD_MASS_G,
     label: "Dřevěný hranol",
     stageLabel: "dřevěným hranolem",
   },
   steel: {
-    body: "#A8B0BA",
-    wire: "#3E4650",
-    hook: "#2F3439",
+    bodyFlat: "url(#beamSteelFlat)",
+    bodyEdge: "url(#beamSteelEdge)",
+    wire: "#3A424A",
+    hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
     massG: 7850,
     label: "Ocelový hranol",
     stageLabel: "ocelovým hranolem",
   },
   steelSmall: {
-    body: "#A8B0BA",
-    wire: "#3E4650",
-    hook: "#2F3439",
+    bodyFlat: "url(#beamSteelFlat)",
+    bodyEdge: "url(#beamSteelEdge)",
+    wire: "#3A424A",
+    hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_SMALL_CM3,
     massG: STEEL_DENSITY_G_CM3 * BEAM_VOLUME_SMALL_CM3,
     label: "Malý ocelový hranol",
@@ -117,6 +149,8 @@ const BEAM_TYPES = ["wood", "steel", "steelSmall"];
 let beamEl = null;
 let beamFlatEl = null;
 let beamEdgeEl = null;
+let beamHookFlatEl = null;
+let beamHookEdgeEl = null;
 let flatSceneEl = null;
 let edgeSceneEl = null;
 let silomerFlatEl = null;
@@ -143,7 +177,16 @@ let maxTravelPx = 0;
 let beamOnEdge = false;
 let beamType = "wood";
 let surfaceType = "metal";
-let padEl = null;
+let flatHookSilomerPoint = FLAT_HOOK_SILOMER;
+let edgeHookSilomerPoint = EDGE_HOOK_SILOMER;
+
+function hookSilomerPointFromMorph(frameKey) {
+  const nums = morphData.paths[3][frameKey][0];
+  return {
+    x: nums[nums.length - 2],
+    y: nums[nums.length - 1],
+  };
+}
 
 function activeBeamVariant() {
   return BEAM_VARIANTS[beamType];
@@ -167,8 +210,27 @@ function beamFrictionForces() {
   return frictionFromMu(activeBeamVariant().massG, beamMuKinetic());
 }
 
+/** Třecí síla příliš velká → hranol se nepohne, pružina max. 20 N */
+function beamIsImmobile() {
+  return beamFrictionForces().kineticN > FRICTION_IMMOVEABLE_N;
+}
+
 function springK() {
+  if (beamIsImmobile()) {
+    return SILOMER_RATED_N / MAX_STRETCH_PX;
+  }
   return beamFrictionForces().staticN / STRETCH_STATIC;
+}
+
+/** Natažení odpovídající jmenovitým 20 N */
+function maxGaugeStretchPx() {
+  const k = springK();
+  if (k <= 0) return MAX_STRETCH_PX;
+  return Math.min(MAX_STRETCH_PX, SILOMER_RATED_N / k);
+}
+
+function forceFromStretch(px) {
+  return Math.max(0, px * springK());
 }
 
 function morphForceFromDisplay(displayForceN) {
@@ -222,13 +284,10 @@ function lerpNums(a, b, t) {
   return out;
 }
 
-function applySpringMorphToSet(pathEls, frameKey, force) {
-  if (!morphData || !pathEls.length) return;
-
-  const forces = morphData.forces;
+function morphSegmentForForce(force, forces) {
   const safeForce = Math.max(force, forces[0]);
-
   let segment = forces.length - 2;
+
   if (safeForce <= forces[forces.length - 1]) {
     segment = 0;
     while (segment < forces.length - 2 && safeForce > forces[segment + 1]) {
@@ -239,12 +298,27 @@ function applySpringMorphToSet(pathEls, frameKey, force) {
   const f0 = forces[segment];
   const f1 = forces[segment + 1];
   const t = f1 === f0 ? 0 : (safeForce - f0) / (f1 - f0);
+  return { segment, t };
+}
+
+function morphNumsForPath(pathItem, frameKey, segment, t) {
+  const frameSet = pathItem[frameKey];
+  return lerpNums(frameSet[segment], frameSet[segment + 1], t);
+}
+
+function applySpringMorphToSet(pathEls, frameKey, force) {
+  if (!morphData || !pathEls.length) return;
+
+  const forces = morphData.forces;
+  const { segment, t } = morphSegmentForForce(force, forces);
 
   for (let i = 0; i < morphData.paths.length; i++) {
-    const pathItem = morphData.paths[i];
-    const frameSet = pathItem[frameKey];
-    const nums = lerpNums(frameSet[segment], frameSet[segment + 1], t);
-    pathEls[i].setAttribute("d", rebuildPath(pathItem.structure, nums));
+    const nums = morphNumsForPath(morphData.paths[i], frameKey, segment, t);
+
+    pathEls[i].setAttribute(
+      "d",
+      rebuildPath(morphData.paths[i].structure, nums)
+    );
   }
 }
 
@@ -276,26 +350,18 @@ function stepSpringVisual() {
   }
 }
 
-function applyBeamMaterialToRoot(root, material) {
+function applyBeamMaterialToRoot(root, material, bodyFill) {
   if (!root) return;
 
-  const bodyEls = root.querySelectorAll(".beam-body");
-  const wireEls = root.querySelectorAll(".beam-wire");
-  const hookEls = root.querySelectorAll(".beam-hook");
-
-  if (bodyEls.length && wireEls.length && hookEls.length) {
-    bodyEls.forEach((el) => el.setAttribute("fill", material.body));
-    wireEls.forEach((el) => el.setAttribute("stroke", material.wire));
-    hookEls.forEach((el) => el.setAttribute("stroke", material.hook));
-    return;
+  for (const el of root.querySelectorAll(".beam-body")) {
+    el.setAttribute("fill", bodyFill);
   }
-
-  const paths = root.querySelectorAll(":scope > path");
-  if (paths.length < 3) return;
-
-  paths[0].setAttribute("stroke", material.hook);
-  paths[1].setAttribute("fill", material.body);
-  paths[2].setAttribute("stroke", material.wire);
+  for (const el of root.querySelectorAll(".beam-wire")) {
+    el.setAttribute("stroke", material.wire);
+  }
+  for (const el of root.querySelectorAll(".beam-hook")) {
+    el.setAttribute("stroke", material.hook);
+  }
 }
 
 function applyBeamScaleToRoot(root, scale, origin) {
@@ -351,23 +417,18 @@ function applyBeamHook(root, scale, origin, silomerEnd, beamEnd, silomerOffset) 
   const hookEl = root?.querySelector(".beam-hook");
   if (!hookEl) return;
 
-  if (Math.abs(scale - 1) < 0.001) {
-    hookEl.setAttribute(
-      "d",
-      `M${silomerEnd.x} ${silomerEnd.y}L${beamEnd.x} ${beamEnd.y}`
-    );
-    return;
-  }
-
-  const worldSilomerEnd = {
+  const from = {
     x: silomerEnd.x + silomerOffset.x,
     y: silomerEnd.y + silomerOffset.y,
   };
-  const localSilomerEnd = unscalePoint(worldSilomerEnd, scale, origin);
+  const to =
+    Math.abs(scale - 1) < 0.001
+      ? beamEnd
+      : scaledPoint(beamEnd, scale, origin);
 
   hookEl.setAttribute(
     "d",
-    `M${localSilomerEnd.x} ${localSilomerEnd.y}L${beamEnd.x} ${beamEnd.y}`
+    `M${from.x} ${from.y}L${to.x} ${to.y}`
   );
 }
 
@@ -422,9 +483,10 @@ function applyBeamMaterial() {
     EDGE_HOOK_ATTACH
   );
 
-  for (const root of [beamFlatEl, beamEdgeEl]) {
-    applyBeamMaterialToRoot(root, variant);
-  }
+  applyBeamMaterialToRoot(beamFlatEl, variant, variant.bodyFlat);
+  applyBeamMaterialToRoot(beamEdgeEl, variant, variant.bodyEdge);
+  applyBeamMaterialToRoot(beamHookFlatEl, variant, variant.bodyFlat);
+  applyBeamMaterialToRoot(beamHookEdgeEl, variant, variant.bodyEdge);
 
   applyBeamScaleToRoot(beamFlatEl, scale, FLAT_BEAM_SCALE_ORIGIN);
   applyBeamScaleToRoot(beamEdgeEl, scale, EDGE_BEAM_SCALE_ORIGIN);
@@ -433,18 +495,18 @@ function applyBeamMaterial() {
   applySilomerOffset(silomerEdgeEl, edgeOffset);
 
   applyBeamHook(
-    beamFlatEl,
+    beamHookFlatEl,
     scale,
     FLAT_BEAM_SCALE_ORIGIN,
-    FLAT_HOOK_SILOMER,
+    flatHookSilomerPoint,
     FLAT_HOOK_ATTACH,
     flatOffset
   );
   applyBeamHook(
-    beamEdgeEl,
+    beamHookEdgeEl,
     scale,
     EDGE_BEAM_SCALE_ORIGIN,
-    EDGE_HOOK_SILOMER,
+    edgeHookSilomerPoint,
     EDGE_HOOK_ATTACH,
     edgeOffset
   );
@@ -472,8 +534,11 @@ function applyBeamOrientation() {
 
 function renderScene() {
   const beamOffset = slideOffset(beamSlidePx);
-  const springForce = stretchPx * springK();
-  const displayForce = stretchVisualPx * springK();
+  const springForce = Math.min(SILOMER_RATED_N, forceFromStretch(stretchPx));
+  const displayForce = Math.min(
+    SILOMER_RATED_N,
+    forceFromStretch(stretchVisualPx)
+  );
   const morphForce = morphForceFromDisplay(
     dragging ? springForce : displayForce
   );
@@ -497,12 +562,19 @@ function renderScene() {
   for (const hitEl of [silomerHitEl, silomerEdgeHitEl]) {
     if (!hitEl) continue;
     const { staticN } = beamFrictionForces();
-    hitEl.setAttribute("aria-valuemax", String(Math.ceil(staticN)));
-    hitEl.setAttribute("aria-valuenow", String(Math.round(displayForce * 10) / 10));
+    hitEl.setAttribute(
+      "aria-valuemax",
+      String(Math.ceil(Math.min(staticN, SILOMER_RATED_N)))
+    );
+    hitEl.setAttribute(
+      "aria-valuenow",
+      String(Math.round(displayForce * 10) / 10)
+    );
     hitEl.setAttribute(
       "aria-valuetext",
       `${forceLabel.replace(" N", "")} newtonů`
     );
+    hitEl.style.cursor = "grab";
   }
 }
 
@@ -520,32 +592,50 @@ function pxToSvg(px) {
   return px * (VIEWBOX_WIDTH / padWrap.clientWidth);
 }
 
+function svgToPx(svg) {
+  return svg * (padWrap.clientWidth / VIEWBOX_WIDTH);
+}
+
+function maxBeamSlidePx() {
+  return svgToPx(beamOnEdge ? EDGE_MAX_BEAM_SLIDE_SVG : FLAT_MAX_BEAM_SLIDE_SVG);
+}
+
 function slideOffset(px) {
   const svgPx = pxToSvg(px);
+  // Po hraně/ploše podložky: doleva a dolů (isometrie), ať kvádr i siloměr zůstávají na podložce.
   return {
-    x: svgPx,
-    y: svgPx * -0.12,
+    x: -svgPx,
+    y: svgPx * SLIDE_Y_PER_X,
   };
 }
 
 function applyPull(handleTravelPx) {
   const travel = Math.max(0, handleTravelPx);
+  const maxStretch = maxGaugeStretchPx();
+
+  if (beamIsImmobile()) {
+    sliding = false;
+    stretchPx = clamp(grabStretch + travel, 0, maxStretch);
+    beamSlidePx = grabBeam;
+    applyVisuals();
+    return;
+  }
 
   if (!sliding) {
     if (grabStretch + travel < STRETCH_STATIC) {
-      stretchPx = clamp(grabStretch + travel, 0, MAX_STRETCH_PX);
+      stretchPx = clamp(grabStretch + travel, 0, maxStretch);
       beamSlidePx = grabBeam;
     } else {
       sliding = true;
       const overTravel = grabStretch + travel - STRETCH_STATIC;
-      stretchPx = STRETCH_STATIC;
-      beamSlidePx = clamp(grabBeam + overTravel, 0, MAX_BEAM_SLIDE_PX);
+      stretchPx = clamp(STRETCH_STATIC, 0, maxStretch);
+      beamSlidePx = clamp(grabBeam + overTravel, 0, maxBeamSlidePx());
     }
   } else {
     const stretchGain = Math.max(0, STRETCH_KINETIC - grabStretch);
     const beamTravel = Math.max(0, travel - stretchGain);
-    stretchPx = clamp(STRETCH_KINETIC, 0, MAX_STRETCH_PX);
-    beamSlidePx = clamp(grabBeam + beamTravel, 0, MAX_BEAM_SLIDE_PX);
+    stretchPx = clamp(STRETCH_KINETIC, 0, maxStretch);
+    beamSlidePx = clamp(grabBeam + beamTravel, 0, maxBeamSlidePx());
   }
 
   applyVisuals();
@@ -633,7 +723,7 @@ function bindSilomerHit(hitEl) {
   hitEl.addEventListener("pointermove", (event) => {
     if (!dragging || event.pointerId !== pointerId) return;
     ensurePointerCapture();
-    const travel = Math.max(0, event.clientX - grabClientX);
+    const travel = Math.max(0, grabClientX - event.clientX);
     maxTravelPx = Math.max(maxTravelPx, travel);
     applyPull(maxTravelPx);
   });
@@ -647,7 +737,7 @@ function bindSilomerHit(hitEl) {
 
   hitEl.addEventListener("keydown", (event) => {
     const step = event.shiftKey ? 18 : 8;
-    if (event.key === "ArrowRight") {
+    if (event.key === "ArrowLeft") {
       grabStretch = stretchPx;
       grabBeam = beamSlidePx;
       applyPull(step);
@@ -716,7 +806,7 @@ function bindResetButton() {
 }
 
 async function init() {
-  const assetVersion = "20260720-steel-small-beam";
+  const assetVersion = "20260720-silomer-body-continue";
   const [sceneResponse, morphResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
@@ -727,11 +817,15 @@ async function init() {
 
   padWrap.innerHTML = await sceneResponse.text();
   morphData = await morphResponse.json();
+  flatHookSilomerPoint = hookSilomerPointFromMorph("frames");
+  edgeHookSilomerPoint = hookSilomerPointFromMorph("edgeFrames");
 
   padEl = padWrap.querySelector("#pad");
   beamEl = padWrap.querySelector("#beam");
   beamFlatEl = padWrap.querySelector("#beamFlat");
   beamEdgeEl = padWrap.querySelector("#beamEdge");
+  beamHookFlatEl = padWrap.querySelector("#beamHookFlat");
+  beamHookEdgeEl = padWrap.querySelector("#beamHookEdge");
   flatSceneEl = padWrap.querySelector("#flatScene");
   edgeSceneEl = padWrap.querySelector("#edgeScene");
   silomerFlatEl = padWrap.querySelector("#silomerFlat");
@@ -752,6 +846,8 @@ async function init() {
     !beamEl ||
     !beamFlatEl ||
     !beamEdgeEl ||
+    !beamHookFlatEl ||
+    !beamHookEdgeEl ||
     !flatSceneEl ||
     !edgeSceneEl ||
     !silomerFlatEl ||
