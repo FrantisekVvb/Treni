@@ -686,6 +686,23 @@ const materialDefs = `
   <stop stop-color="#A8CFE6"/>
   <stop offset="1" stop-color="#6A94B0"/>
 </linearGradient>
+<linearGradient id="rubberPad0" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#4A4A4A"/>
+  <stop offset="1" stop-color="#2E2E2E"/>
+</linearGradient>
+<linearGradient id="rubberPad1" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#5E5E5E"/>
+  <stop offset="0.35" stop-color="#484848"/>
+  <stop offset="1" stop-color="#333333"/>
+</linearGradient>
+<linearGradient id="rubberPad2" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#3A3A3A"/>
+  <stop offset="1" stop-color="#222222"/>
+</linearGradient>
+<linearGradient id="rubberPad3" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#424242"/>
+  <stop offset="1" stop-color="#282828"/>
+</linearGradient>
 `.trim();
 
 const defs = `<defs>\n${materialDefs}\n</defs>`;
@@ -724,9 +741,9 @@ const READOUT_EDGE = {
   angle: Number(edgeReadoutLayout.angle.toFixed(3)),
 };
 
-const SILOMER_HIT_FLAT = { x: 150, y: 40, width: 240, height: 110 };
-// Cover left siloměr in edge local coords (before layout offset).
-const SILOMER_HIT_EDGE = { x: 190, y: 95, width: 210, height: 90 };
+const SILOMER_HANDLE_HIT_R = 14;
+
+// Invisible grab target — position synced in app to žluté kolečko (springPath11).
 
 // Beam top after Y offset ≈ -79.5; flat pad bottom ≈ 226.25.
 const VIEW_X = -61;
@@ -756,7 +773,7 @@ ${flatBrokenMarkup}
 ${flatSections.readoutBox}
 <text id="forceReadout" x="${READOUT_FLAT.x}" y="${READOUT_FLAT.y}" transform="rotate(${READOUT_FLAT.angle} ${READOUT_FLAT.x} ${READOUT_FLAT.y})" text-anchor="middle" dominant-baseline="middle" font-family="Fenomen Sans, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171923">0 N</text>
 </g>
-<rect id="silomer" x="${SILOMER_HIT_FLAT.x}" y="${SILOMER_HIT_FLAT.y}" width="${SILOMER_HIT_FLAT.width}" height="${SILOMER_HIT_FLAT.height}" fill="transparent" cursor="grab" aria-label="Siloměr"/>
+<circle id="silomer" cx="161.5" cy="125.5" r="${SILOMER_HANDLE_HIT_R}" fill="transparent" cursor="grab" aria-label="Siloměr"/>
 </g>
 <g id="beamHookFlat">
 ${tagBeamPaths([flatSections.hook]).join("\n")}
@@ -778,7 +795,7 @@ ${edgeBrokenMarkup}
 ${edgeSections.readoutBox}
 <text id="forceReadoutEdge" x="${READOUT_EDGE.x}" y="${READOUT_EDGE.y}" transform="rotate(${READOUT_EDGE.angle} ${READOUT_EDGE.x} ${READOUT_EDGE.y})" text-anchor="middle" dominant-baseline="middle" font-family="Fenomen Sans, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171923">0 N</text>
 </g>
-<rect id="silomerEdgeHit" x="${SILOMER_HIT_EDGE.x}" y="${SILOMER_HIT_EDGE.y}" width="${SILOMER_HIT_EDGE.width}" height="${SILOMER_HIT_EDGE.height}" fill="transparent" cursor="grab" aria-label="Siloměr"/>
+<circle id="silomerEdgeHit" cx="187.5" cy="166" r="${SILOMER_HANDLE_HIT_R}" fill="transparent" cursor="grab" aria-label="Siloměr"/>
 </g>
 <g id="beamHookEdge">
 ${tagBeamPaths([edgeSections.hook]).join("\n")}

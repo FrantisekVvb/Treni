@@ -2,9 +2,16 @@ const padWrap = document.getElementById("padWrap");
 const stageEl = document.getElementById("stage");
 const resetBtn = document.getElementById("resetBtn");
 const flipBeamBtn = document.getElementById("flipBeamBtn");
-const beamBtnEls = [...document.querySelectorAll("[data-beam-type]")];
+const beamSizeBtnEls = [...document.querySelectorAll(".scene-btn--size[data-beam-type]")];
 const surfaceBtnEls = [...document.querySelectorAll("[data-surface-type]")];
 const beamMassEl = document.getElementById("beamMassEl");
+const muEditorToggleBtn = document.getElementById("muEditorToggleBtn");
+const muEditorEl = document.getElementById("muEditor");
+const muPairLabelEl = document.getElementById("muPairLabel");
+const muInputEl = document.getElementById("muInput");
+const muOkBtn = document.getElementById("muOkBtn");
+const muFeedbackEl = document.getElementById("muFeedback");
+const mathKeypadEl = document.getElementById("mathKeypad");
 
 if (!padWrap) {
   throw new Error("Chybí základní prvky scény.");
@@ -27,6 +34,8 @@ const MU_K_CARPET = 1.5;
 const MU_K_WOOD_WOOD = 0.3;
 /** Led: stejné μ_k vůči dřevu i oceli */
 const MU_K_ICE = 0.02;
+/** Guma: stejné μ_k vůči dřevu i oceli */
+const MU_K_RUBBER = 1;
 /** Nad touto třecí silou se hranol nepohne */
 const FRICTION_IMMOVEABLE_N = 20;
 /** Jmenovitý rozsah siloměru (N) */
@@ -72,6 +81,7 @@ const SILOMER_HOOK_GAUGE_PATH_INDICES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const SILOMER_COIL_PATH_INDICES = [
   12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
 ];
+const SILOMER_HANDLE_PATH_INDEX = 11;
 const SILOMER_ROD_PATH_INDEX = 3;
 
 /** Hranol 20,3×5,2×9,4 cm = 1000 cm³; malá ocel = ¼ objemu, malé dřevo = ½ objemu */
@@ -171,9 +181,22 @@ const SURFACE_VARIANTS = {
     ],
     padStroke: "#6A8FA8",
   },
+  rubber: {
+    label: "Guma",
+    stageLabel: "gumová podložka",
+    padLabel: "Gumová podložka",
+    muKinetic: { wood: MU_K_RUBBER, steel: MU_K_RUBBER },
+    padFills: [
+      "url(#rubberPad0)",
+      "url(#rubberPad1)",
+      "url(#rubberPad2)",
+      "url(#rubberPad3)",
+    ],
+    padStroke: "#2A2A2A",
+  },
 };
 
-const SURFACE_TYPES = ["metal", "leather", "carpet", "wood", "ice"];
+const SURFACE_TYPES = ["metal", "leather", "carpet", "wood", "ice", "rubber"];
 
 const BEAM_VARIANTS = {
   wood: {
@@ -265,8 +288,10 @@ let maxTravelPx = 0;
 let beamOnEdge = false;
 let beamType = "wood";
 let surfaceType = "metal";
-let flatHookSilomerPoint = FLAT_HOOK_SILOMER;
-let edgeHookSilomerPoint = EDGE_HOOK_SILOMER;
+let muEditorOpen = false;
+let silomerHintFlatEl = null;
+let silomerHintEdgeEl = null;
+let silomerHintDismissed = false;
 
 function hookSilomerPointFromMorph(frameKey) {
   const nums = morphData.paths[3][frameKey][0];
@@ -288,10 +313,26 @@ function activeSurfaceVariant() {
   return SURFACE_VARIANTS[surfaceType];
 }
 
-function beamMuKinetic() {
+function beamMaterialKey() {
+  return beamType.startsWith("wood") ? "wood" : "steel";
+}
+
+function beamMaterialLabel() {
+  return beamMaterialKey() === "wood" ? "Dřevo" : "Ocel";
+}
+
+function defaultMuKinetic() {
   const surface = activeSurfaceVariant();
-  const key = beamType.startsWith("wood") ? "wood" : "steel";
-  return surface.muKinetic[key];
+  return surface.muKinetic[beamMaterialKey()];
+}
+
+function muPairLabelText() {
+  const surface = activeSurfaceVariant();
+  return `${beamMaterialLabel()} – ${surface.label.toLowerCase()}`;
+}
+
+function beamMuKinetic() {
+  return defaultMuKinetic();
 }
 
 function volumeLinearScale(volumeCm3) {
@@ -358,12 +399,9 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function formatBeamMass(grams) {
-  const kg = grams / 1000;
-  return `${kg.toLocaleString("cs-CZ", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })} kg`;
+function formatBeamWeight(grams) {
+  const weightN = (grams / 1000) * GRAVITY;
+  return formatForce(weightN);
 }
 
 function formatBeamVolume(cm3) {
@@ -451,6 +489,91 @@ function applySpringMorphToSet(pathEls, frameKey, force) {
       "d",
       rebuildPath(morphData.paths[i].structure, nums)
     );
+  }
+}
+
+/** Vizuální zvětšení žlutého kolečka siloměru (path 11). */
+const SILOMER_HANDLE_VISUAL_SCALE = 1.55;
+
+function syncSilomerHandleHit(handlePathEl, hitEl) {
+  if (!handlePathEl || !hitEl) return;
+  handlePathEl.removeAttribute("transform");
+  const box = handlePathEl.getBBox();
+  if (box.width === 0 && box.height === 0) return;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  handlePathEl.setAttribute(
+    "transform",
+    `translate(${cx} ${cy}) scale(${SILOMER_HANDLE_VISUAL_SCALE}) translate(${-cx} ${-cy})`
+  );
+  const r =
+    (Math.max(box.width, box.height) / 2) * SILOMER_HANDLE_VISUAL_SCALE + 10;
+  hitEl.setAttribute("cx", String(cx));
+  hitEl.setAttribute("cy", String(cy));
+  hitEl.setAttribute("r", String(r));
+  return { cx, cy, r };
+}
+
+function createSilomerHandleHint(parent) {
+  const ns = "http://www.w3.org/2000/svg";
+  const g = document.createElementNS(ns, "g");
+  g.setAttribute("class", "silomer-handle-hint");
+  g.setAttribute("pointer-events", "none");
+  g.setAttribute("aria-hidden", "true");
+
+  const motion = document.createElementNS(ns, "g");
+  motion.setAttribute("class", "silomer-handle-hint__motion");
+
+  const shaft = document.createElementNS(ns, "line");
+  shaft.setAttribute("x1", "-46");
+  shaft.setAttribute("y1", "0");
+  shaft.setAttribute("x2", "-8");
+  shaft.setAttribute("y2", "0");
+  shaft.setAttribute("stroke", "#F19100");
+  shaft.setAttribute("stroke-width", "3.2");
+  shaft.setAttribute("stroke-linecap", "round");
+
+  const head = document.createElementNS(ns, "path");
+  head.setAttribute("d", "M-8 -10 L8 0 L-8 10 Z");
+  head.setAttribute("fill", "#F19100");
+
+  motion.appendChild(shaft);
+  motion.appendChild(head);
+  g.appendChild(motion);
+  parent.appendChild(g);
+  return g;
+}
+
+function dismissSilomerHandleHint() {
+  if (silomerHintDismissed) return;
+  silomerHintDismissed = true;
+  silomerHintFlatEl?.setAttribute("display", "none");
+  silomerHintEdgeEl?.setAttribute("display", "none");
+}
+
+function syncSilomerHandleHint(hitEl, hintEl) {
+  if (!hintEl) return;
+  if (silomerHintDismissed || springBroken || !hitEl) {
+    hintEl.setAttribute("display", "none");
+    return;
+  }
+  const cx = Number(hitEl.getAttribute("cx"));
+  const cy = Number(hitEl.getAttribute("cy"));
+  const r = Number(hitEl.getAttribute("r"));
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return;
+  hintEl.setAttribute("transform", `translate(${cx - r - 10} ${cy})`);
+  hintEl.removeAttribute("display");
+}
+
+function updateSilomerHandleHints() {
+  if (silomerHintDismissed) return;
+  const showFlat = !beamOnEdge;
+  const showEdge = beamOnEdge;
+  if (silomerHintFlatEl) {
+    silomerHintFlatEl.setAttribute("display", showFlat ? "" : "none");
+  }
+  if (silomerHintEdgeEl) {
+    silomerHintEdgeEl.setAttribute("display", showEdge ? "" : "none");
   }
 }
 
@@ -698,9 +821,8 @@ function applyBeamHook(root, scale, origin, silomerEnd, beamEnd, silomerOffset) 
 }
 
 function updateBeamButtons() {
-  for (const btn of beamBtnEls) {
-    const type = btn.dataset.beamType;
-    btn.setAttribute("aria-pressed", String(type === beamType));
+  for (const btn of beamSizeBtnEls) {
+    btn.setAttribute("aria-pressed", String(btn.dataset.beamType === beamType));
   }
 }
 
@@ -777,8 +899,7 @@ function applyBeamMaterial() {
   );
 
   if (beamMassEl) {
-    beamMassEl.textContent =
-      `Hmotnost: ${formatBeamMass(variant.massG)} · Objem: ${formatBeamVolume(variant.volumeCm3)}`;
+    beamMassEl.innerHTML = `<p class="scene-meta__line">Tíha = ${formatBeamWeight(variant.massG)}</p><p class="scene-meta__line">Objem = ${formatBeamVolume(variant.volumeCm3)}</p>`;
   }
 
   updateBeamButtons();
@@ -792,7 +913,6 @@ function applyBeamOrientation() {
   if (edgeSceneEl) edgeSceneEl.style.display = showEdge ? "inline" : "none";
 
   if (flipBeamBtn) {
-    flipBeamBtn.textContent = showEdge ? "Na plochu" : "Na boční hranu";
     flipBeamBtn.setAttribute("aria-pressed", String(showEdge));
   }
 }
@@ -864,6 +984,18 @@ function renderScene() {
     );
     hitEl.style.cursor = springBroken ? "not-allowed" : "grab";
   }
+
+  syncSilomerHandleHit(
+    morphPathEls[SILOMER_HANDLE_PATH_INDEX],
+    silomerHitEl
+  );
+  syncSilomerHandleHit(
+    morphPathEdgeEls[SILOMER_HANDLE_PATH_INDEX],
+    silomerEdgeHitEl
+  );
+  syncSilomerHandleHint(silomerHitEl, silomerHintFlatEl);
+  syncSilomerHandleHint(silomerEdgeHitEl, silomerHintEdgeEl);
+  updateSilomerHandleHints();
 }
 
 function animationLoop() {
@@ -1004,6 +1136,7 @@ function handlePointerEnd(event) {
 function beginDrag(event) {
   if (springBroken) return;
 
+  dismissSilomerHandleHint();
   dragging = true;
   pointerId = event.pointerId;
   grabClientX = event.clientX;
@@ -1054,6 +1187,7 @@ function bindSilomerHit(hitEl) {
   hitEl.addEventListener("keydown", (event) => {
     const step = event.shiftKey ? 18 : 8;
     if (event.key === "ArrowLeft") {
+      dismissSilomerHandleHint();
       grabStretch = stretchPx;
       grabBeam = beamSlidePx;
       applyPull(step);
@@ -1081,6 +1215,7 @@ function selectBeamType(type) {
   beamType = type;
   resetScene();
   applyBeamMaterial();
+  refreshMuEditorIfOpen();
 }
 
 function toggleBeamOrientation() {
@@ -1093,6 +1228,7 @@ function selectSurfaceType(type) {
   surfaceType = type;
   resetScene();
   applyBeamMaterial();
+  refreshMuEditorIfOpen();
 }
 
 function bindSurfaceButtons() {
@@ -1104,7 +1240,7 @@ function bindSurfaceButtons() {
 }
 
 function bindBeamButtons() {
-  for (const btn of beamBtnEls) {
+  for (const btn of beamSizeBtnEls) {
     btn.addEventListener("click", () => {
       selectBeamType(btn.dataset.beamType);
     });
@@ -1119,6 +1255,138 @@ function bindFlipButton() {
 function bindResetButton() {
   if (!resetBtn) return;
   resetBtn.addEventListener("click", resetScene);
+}
+
+function parseNumberInput(value) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clearMuFeedback() {
+  if (!muFeedbackEl) return;
+  muFeedbackEl.hidden = true;
+  muFeedbackEl.textContent = "";
+  muFeedbackEl.classList.remove("is-success", "is-error");
+}
+
+function showMuFeedback(message, kind) {
+  if (!muFeedbackEl) return;
+  muFeedbackEl.hidden = false;
+  muFeedbackEl.textContent = message;
+  muFeedbackEl.classList.toggle("is-success", kind === "success");
+  muFeedbackEl.classList.toggle("is-error", kind === "error");
+}
+
+function syncMuEditorContent() {
+  if (!muPairLabelEl || !muInputEl) return;
+  muPairLabelEl.textContent = muPairLabelText();
+  muInputEl.value = "";
+  clearMuFeedback();
+}
+
+function setMuEditorOpen(open) {
+  muEditorOpen = open;
+  if (muEditorToggleBtn) {
+    muEditorToggleBtn.setAttribute("aria-pressed", String(open));
+    muEditorToggleBtn.setAttribute("aria-expanded", String(open));
+  }
+  if (muEditorEl) {
+    muEditorEl.hidden = !open;
+  }
+  if (open) {
+    syncMuEditorContent();
+    muInputEl?.focus();
+  } else {
+    clearMuFeedback();
+  }
+}
+
+function toggleMuEditor() {
+  setMuEditorOpen(!muEditorOpen);
+}
+
+function insertIntoMuInput(text) {
+  if (!muInputEl) return;
+
+  if (text === "," || text === ".") {
+    if (muInputEl.value.includes(",") || muInputEl.value.includes(".")) return;
+  }
+
+  clearMuFeedback();
+  muInputEl.value += text;
+  muInputEl.focus();
+}
+
+function deleteFromMuInput() {
+  if (!muInputEl) return;
+
+  clearMuFeedback();
+  muInputEl.value = muInputEl.value.slice(0, -1);
+  muInputEl.focus();
+}
+
+function verifyMuInput() {
+  if (!muInputEl) return;
+
+  const value = parseNumberInput(muInputEl.value);
+  if (value === null) {
+    showMuFeedback("Zadej číslo.", "error");
+    return;
+  }
+
+  if (value < 0) {
+    showMuFeedback("Koeficient musí být nezáporný.", "error");
+    return;
+  }
+
+  const correct = defaultMuKinetic();
+  const roundedInput = Math.round(value * 100) / 100;
+  const roundedCorrect = Math.round(correct * 100) / 100;
+  if (Math.abs(roundedInput - roundedCorrect) < 0.015) {
+    showMuFeedback("Správně!", "success");
+    return;
+  }
+
+  showMuFeedback("To není správně. Zkus to znovu.", "error");
+}
+
+function onMathKeypadClick(event) {
+  if (!mathKeypadEl || !muEditorOpen) return;
+
+  const keyBtn = event.target.closest("[data-key]");
+  if (!keyBtn || !mathKeypadEl.contains(keyBtn)) return;
+
+  const key = keyBtn.getAttribute("data-key");
+  if (!key) return;
+
+  if (key === "backspace") {
+    deleteFromMuInput();
+    return;
+  }
+
+  insertIntoMuInput(key);
+}
+
+function bindMuEditor() {
+  if (!muEditorToggleBtn || !muEditorEl || !muInputEl || !muOkBtn || !mathKeypadEl) return;
+
+  muEditorToggleBtn.addEventListener("click", toggleMuEditor);
+  muOkBtn.addEventListener("click", verifyMuInput);
+  muInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      verifyMuInput();
+    }
+  });
+  mathKeypadEl.addEventListener("click", onMathKeypadClick);
+}
+
+function refreshMuEditorIfOpen() {
+  if (!muEditorOpen) return;
+  syncMuEditorContent();
 }
 
 async function init() {
@@ -1162,6 +1430,8 @@ async function init() {
   morphPathEdgeEls = morphData.paths.map((_, index) =>
     silomerEdgeEl.querySelector(`#springPathEdge${index}`)
   );
+  silomerHintFlatEl = createSilomerHandleHint(silomerFlatEl);
+  silomerHintEdgeEl = createSilomerHandleHint(silomerEdgeEl);
 
   if (
     !padEl ||
@@ -1191,6 +1461,7 @@ async function init() {
   bindBeamButtons();
   bindFlipButton();
   bindResetButton();
+  bindMuEditor();
   applyBeamOrientation();
   applyBeamMaterial();
   renderScene();

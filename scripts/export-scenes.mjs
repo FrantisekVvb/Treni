@@ -57,7 +57,7 @@ function figmaSanitize(markup) {
     .replace(/<path class="beam-hook-broken"[\s\S]*?\/>/g, "")
     .replace(/\sstyle="display:\s*none"/g, "")
     .replace(/\s+cursor="[^"]*"/g, "")
-    .replace(/<rect id="silomer(?:EdgeHit)?"[\s\S]*?\/>/g, "")
+    .replace(/<(?:rect|circle) id="silomer(?:EdgeHit)?"[\s\S]*?\/>/g, "")
     .replace(/font-family="Fenomen Sans[^"]*"/g, 'font-family="Inter"')
     .replace(/aria-label="[^"]*"/g, "")
     .replace(/id="springPath(?:Edge)?\d+"/g, "")
