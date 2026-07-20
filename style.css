@@ -131,8 +131,8 @@ body {
 
 .pad-wrap {
   position: relative;
-  width: min(824px, 96vw);
-  aspect-ratio: 824 / 320;
+  width: min(954px, 96vw);
+  aspect-ratio: 954 / 325;
   user-select: none;
 }
 

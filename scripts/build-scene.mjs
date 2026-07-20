@@ -16,7 +16,7 @@ const SILOMER_SHIFT_X = 51.789;
 const SILOMER_SHIFT_Y = -21.6446;
 
 /** Flat pad top Y vs edge pad top Y — seat edge content on the shared flat pad. */
-const FLAT_PAD_TOP_Y = 16.7734;
+const FLAT_PAD_TOP_Y = 21.25;
 const EDGE_PAD_TOP_Y = 101.521;
 const EDGE_LAYOUT_Y_OFFSET = FLAT_PAD_TOP_Y - EDGE_PAD_TOP_Y; // ≈ -84.7476
 
@@ -200,16 +200,16 @@ function tagBeamPaths(lines) {
 
 function extractFlatSections(svg) {
   const lines = svg.split("\n");
-  const padStart = lines.findIndex((line) => line.includes("M551.25 16.7734"));
-  const bodyStart = lines.findIndex((line) => line.includes("M650.5 97.5234"));
+  const padStart = lines.findIndex((line) => line.includes("M551.25 21.25"));
+  const bodyStart = lines.findIndex((line) => /650\.5 102/.test(line));
   const wireStart = lines.findIndex((line) =>
     line.includes('stroke="#5C3A18"')
   );
   const hookStart = lines.findIndex((line) =>
-    line.includes("M399.75 79.7734L373.25 86.2734")
+    /399\.75\s+84\.25.*373\.25\s+90\.75/.test(line)
   );
   const readoutStart = lines.findIndex((line) =>
-    line.includes("M233.661 87.4857")
+    /233\.661\s+91\.962/.test(line)
   );
 
   if (
@@ -227,7 +227,23 @@ function extractFlatSections(svg) {
     readoutBox: lines[readoutStart],
     beam: [lines[bodyStart], lines[wireStart]],
     hook: lines[hookStart],
+    hookAttach: parseHookAttach(lines[hookStart]),
+    hookSilomer: parseHookSilomer(lines[hookStart]),
   };
+}
+
+function parseHookAttach(hookLine) {
+  const d = hookLine.match(/d="([^"]+)"/)?.[1];
+  if (!d) throw new Error("Háček bez d.");
+  const nums = (d.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/g) || []).map(Number);
+  return { x: nums[0], y: nums[1] };
+}
+
+function parseHookSilomer(hookLine) {
+  const d = hookLine.match(/d="([^"]+)"/)?.[1];
+  if (!d) throw new Error("Háček bez d.");
+  const nums = (d.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/g) || []).map(Number);
+  return { x: nums[2], y: nums[3] };
 }
 
 function extractEdgeSections(svg) {
@@ -310,7 +326,7 @@ const edgeUser = fs.readFileSync(edgeUserPath, "utf8");
 const flatSections = extractFlatSections(flatUser);
 const edgeSections = extractEdgeSections(edgeUser);
 
-const newRestRaw = extractSilomerPaths(flatUser, "M181.223", "M233.661");
+const newRestRaw = extractSilomerPaths(flatUser, "181.223", "233.661");
 const edgeRestRaw = extractSilomerPaths(
   edgeUser,
   "M207.223 163.853",
@@ -510,8 +526,8 @@ const brokenHookTailFlat = {
   y: brokenHookRestFlat.y + brokenBodyDy,
 };
 const brokenHookTailEdge = {
-  x: brokenHookTailFlat.x + (edgeSections.hookAttach.x - 399.75),
-  y: brokenHookTailFlat.y + (edgeSections.hookAttach.y - 79.7734),
+  x: brokenHookTailFlat.x + (edgeSections.hookAttach.x - flatSections.hookAttach.x),
+  y: brokenHookTailFlat.y + (edgeSections.hookAttach.y - flatSections.hookAttach.y),
 };
 
 const flatBrokenMarkup = alignedNewRest
@@ -534,7 +550,7 @@ const edgeBrokenMarkup = alignedNewRest
   )
   .join("\n");
 
-const brokenHookLooseFlat = { x: 373.25, y: 86.2734 };
+const brokenHookLooseFlat = flatSections.hookSilomer;
 const brokenHookLooseEdge = {
   x: edgeSections.hookSilomer.x,
   y: edgeSections.hookSilomer.y,
@@ -562,21 +578,21 @@ const morph = {
 };
 
 const materialDefs = `
-<linearGradient id="paint0_linear_2095_869" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint0_linear_2095_869" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#7A828C"/>
   <stop offset="1" stop-color="#454C54"/>
 </linearGradient>
-<linearGradient id="paint1_linear_2095_869" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint1_linear_2095_869" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#D5DAE0"/>
   <stop offset="0.35" stop-color="#ADB5BF"/>
   <stop offset="0.7" stop-color="#8E96A1"/>
   <stop offset="1" stop-color="#6F7782"/>
 </linearGradient>
-<linearGradient id="paint2_linear_2095_869" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint2_linear_2095_869" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#6B737D"/>
   <stop offset="1" stop-color="#3E4650"/>
 </linearGradient>
-<linearGradient id="paint3_linear_2095_869" x1="-8.75001" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint3_linear_2095_869" x1="-8.75001" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#747C86"/>
   <stop offset="1" stop-color="#454C54"/>
 </linearGradient>
@@ -602,71 +618,71 @@ const materialDefs = `
   <stop offset="0.7" stop-color="#7A848E"/>
   <stop offset="1" stop-color="#4F575F"/>
 </linearGradient>
-<linearGradient id="leatherPad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="leatherPad0" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#7A5238"/>
   <stop offset="1" stop-color="#4E3222"/>
 </linearGradient>
-<linearGradient id="leatherPad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="leatherPad1" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#A36B45"/>
   <stop offset="0.4" stop-color="#8B5636"/>
   <stop offset="1" stop-color="#6A4129"/>
 </linearGradient>
-<linearGradient id="leatherPad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="leatherPad2" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#6E4630"/>
   <stop offset="1" stop-color="#452C1C"/>
 </linearGradient>
-<linearGradient id="leatherPad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="leatherPad3" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#745032"/>
   <stop offset="1" stop-color="#4A301E"/>
 </linearGradient>
-<linearGradient id="carpetPad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="carpetPad0" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#5A6E4A"/>
   <stop offset="1" stop-color="#3A4A30"/>
 </linearGradient>
-<linearGradient id="carpetPad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="carpetPad1" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#7A9168"/>
   <stop offset="0.4" stop-color="#647A54"/>
   <stop offset="1" stop-color="#4E6342"/>
 </linearGradient>
-<linearGradient id="carpetPad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="carpetPad2" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#4E5F40"/>
   <stop offset="1" stop-color="#2F3D2A"/>
 </linearGradient>
-<linearGradient id="carpetPad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="carpetPad3" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#556845"/>
   <stop offset="1" stop-color="#354532"/>
 </linearGradient>
-<linearGradient id="woodPad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="woodPad0" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#C9955A"/>
   <stop offset="1" stop-color="#8B5E2E"/>
 </linearGradient>
-<linearGradient id="woodPad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="woodPad1" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#F0C38A"/>
   <stop offset="0.4" stop-color="#D9984F"/>
   <stop offset="1" stop-color="#B56F2E"/>
 </linearGradient>
-<linearGradient id="woodPad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="woodPad2" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#A66B30"/>
   <stop offset="1" stop-color="#6B4520"/>
 </linearGradient>
-<linearGradient id="woodPad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="woodPad3" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#9E6828"/>
   <stop offset="1" stop-color="#634018"/>
 </linearGradient>
-<linearGradient id="icePad0" x1="631.25" y1="56.7734" x2="791.25" y2="196.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="icePad0" x1="631.25" y1="61.25" x2="791.25" y2="201.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#D8EEF8"/>
   <stop offset="1" stop-color="#9EC4DC"/>
 </linearGradient>
-<linearGradient id="icePad1" x1="11.25" y1="16.7734" x2="711.25" y2="156.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="icePad1" x1="11.25" y1="21.25" x2="711.25" y2="161.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#F2FAFF"/>
   <stop offset="0.35" stop-color="#D4EBF7"/>
   <stop offset="1" stop-color="#A8CFE6"/>
 </linearGradient>
-<linearGradient id="icePad2" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="icePad2" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#B8D9EC"/>
   <stop offset="1" stop-color="#7FA8C4"/>
 </linearGradient>
-<linearGradient id="icePad3" x1="-8.75" y1="156.773" x2="631.25" y2="216.773" gradientUnits="userSpaceOnUse">
+<linearGradient id="icePad3" x1="-8.75" y1="161.25" x2="631.25" y2="221.25" gradientUnits="userSpaceOnUse">
   <stop stop-color="#A8CFE6"/>
   <stop offset="1" stop-color="#6A94B0"/>
 </linearGradient>
@@ -712,11 +728,11 @@ const SILOMER_HIT_FLAT = { x: 150, y: 40, width: 240, height: 110 };
 // Cover left siloměr in edge local coords (before layout offset).
 const SILOMER_HIT_EDGE = { x: 190, y: 95, width: 210, height: 90 };
 
-// Beam top after Y offset ≈ -83.98; flat pad bottom ≈ 221.77.
+// Beam top after Y offset ≈ -79.5; flat pad bottom ≈ 226.25.
 const VIEW_X = -61;
 const VIEW_Y = -90;
-const VIEW_W = 824;
-const VIEW_H = 320;
+const VIEW_W = 954;
+const VIEW_H = 325;
 
 const output = `<svg width="${VIEW_W}" height="${VIEW_H}" viewBox="${VIEW_X} ${VIEW_Y} ${VIEW_W} ${VIEW_H}" fill="none" xmlns="http://www.w3.org/2000/svg" overflow="visible" aria-label="Základní scéna tření">
 ${defs}
@@ -744,7 +760,7 @@ ${flatSections.readoutBox}
 </g>
 <g id="beamHookFlat">
 ${tagBeamPaths([flatSections.hook]).join("\n")}
-<path class="beam-hook-broken" style="display:none" d="M399.75 79.7734L${brokenHookTailFlat.x} ${brokenHookTailFlat.y}" stroke="black"/>
+<path class="beam-hook-broken" style="display:none" d="M${flatSections.hookAttach.x} ${flatSections.hookAttach.y}L${brokenHookTailFlat.x} ${brokenHookTailFlat.y}" stroke="black"/>
 </g>
 </g>
 <g id="edgeScene" style="display:none" transform="translate(0 ${EDGE_LAYOUT_Y_OFFSET})">

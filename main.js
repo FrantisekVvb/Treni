@@ -36,10 +36,10 @@ const SILOMER_BREAK_FORCE_N = 23;
 /** Statické tření = kinematické × tento poměr (původní chování simulace) */
 const MU_STATIC_OVER_KINETIC = 4 / 3;
 const MAX_STRETCH_PX = 120;
-const VIEWBOX_WIDTH = 824;
+const VIEWBOX_WIDTH = 954;
 /** Posun po podložce: směr dlouhé osy horní stěny (Δy/|Δx| = 80/550). */
 const SLIDE_Y_PER_X = 80 / 550;
-/** Max posun hranolu v SVG jednotkách (viewBox šířka 824) */
+/** Max posun hranolu v SVG jednotkách (viewBox šířka 954) */
 const FLAT_MAX_BEAM_SLIDE_SVG = 220;
 /** Edge konec: beam 450.701 → 286.451 (scene-edge-end-user) */
 const EDGE_MAX_BEAM_SLIDE_SVG = 164.25;
@@ -97,11 +97,11 @@ function beamMassG(type, volumeCm3) {
 }
 
 /** Střed spodní hrany hranolu ve flat/edge scéně (bod na podložce) */
-const FLAT_BEAM_SCALE_ORIGIN = { x: 460, y: 127.523 };
+const FLAT_BEAM_SCALE_ORIGIN = { x: 460, y: 132 };
 const EDGE_BEAM_SCALE_ORIGIN = { x: 428.4755, y: 189.113 };
 /** Konec háčku hranolu — bod připojení siloměru (siloměr vlevo) */
-const FLAT_HOOK_ATTACH = { x: 399.75, y: 79.7734 };
-const FLAT_HOOK_SILOMER = { x: 373.25, y: 86.2734 };
+const FLAT_HOOK_ATTACH = { x: 399.75, y: 84.25 };
+const FLAT_HOOK_SILOMER = { x: 373.25, y: 90.75 };
 const EDGE_HOOK_ATTACH = { x: 425.75, y: 122.771 };
 const EDGE_HOOK_SILOMER = { x: 399.25, y: 129.271 };
 
@@ -359,16 +359,15 @@ function clamp(value, min, max) {
 }
 
 function formatBeamMass(grams) {
-  if (grams >= 1000) {
-    return `${(grams / 1000).toLocaleString("cs-CZ", {
-      maximumFractionDigits: 2,
-    })} kg`;
-  }
-  return `${grams.toLocaleString("cs-CZ")} g`;
+  const kg = grams / 1000;
+  return `${kg.toLocaleString("cs-CZ", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })} kg`;
 }
 
 function formatBeamVolume(cm3) {
-  return `${cm3.toLocaleString("cs-CZ")} cm³`;
+  return `${Math.round(cm3).toLocaleString("cs-CZ")} cm³`;
 }
 
 function formatForce(newtons) {
