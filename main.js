@@ -291,6 +291,7 @@ let surfaceType = "metal";
 let muEditorOpen = false;
 let silomerHintFlatEl = null;
 let silomerHintEdgeEl = null;
+let silomerBrokenBannerEl = null;
 let silomerHintDismissed = false;
 
 function hookSilomerPointFromMorph(frameKey) {
@@ -542,6 +543,18 @@ function createSilomerHandleHint(parent) {
   g.appendChild(motion);
   parent.appendChild(g);
   return g;
+}
+
+function createSilomerBrokenBanner() {
+  const banner = document.createElement("div");
+  banner.id = "silomerBrokenBanner";
+  banner.className = "silomer-broken-banner";
+  banner.hidden = true;
+  banner.setAttribute("role", "alert");
+  banner.setAttribute("aria-live", "assertive");
+  banner.textContent = SILOMER_BROKEN_MESSAGE;
+  padWrap.appendChild(banner);
+  return banner;
 }
 
 function dismissSilomerHandleHint() {
@@ -796,8 +809,14 @@ function applySilomerOffset(silomerEl, offset) {
 function applyForceReadout(forceLabel, brokenMessage) {
   for (const readoutEl of [forceReadoutEl, forceReadoutEdgeEl]) {
     if (!readoutEl) continue;
-    readoutEl.textContent = forceLabel;
-    readoutEl.setAttribute("font-size", brokenMessage ? "9" : "14");
+    readoutEl.textContent = brokenMessage ? "" : forceLabel;
+    readoutEl.setAttribute("font-size", "14");
+    readoutEl.setAttribute("fill", "#171923");
+    readoutEl.setAttribute("opacity", brokenMessage ? "0" : "1");
+  }
+
+  if (silomerBrokenBannerEl) {
+    silomerBrokenBannerEl.hidden = !brokenMessage;
   }
 }
 
@@ -1401,6 +1420,7 @@ async function init() {
 
   padWrap.innerHTML = await sceneResponse.text();
   morphData = await morphResponse.json();
+  silomerBrokenBannerEl = createSilomerBrokenBanner();
   flatHookSilomerPoint = hookSilomerPointFromMorph("frames");
   edgeHookSilomerPoint = hookSilomerPointFromMorph("edgeFrames");
 
