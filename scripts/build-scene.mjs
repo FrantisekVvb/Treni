@@ -7,8 +7,10 @@ const morphPath = path.join(assets, "spring-morph.json");
 const flatUserPath = path.join(assets, "scene-flat-user.svg");
 const edgeUserPath = path.join(assets, "scene-edge-user.svg");
 const maxSceneUserPath = path.join(assets, "scene-max-user.svg");
+const brokenUserPath = path.join(assets, "scene-broken-user.svg");
 const maxUserPath = path.join(assets, "silomer-max.svg");
 const SILOMER_RATED_N = 20;
+const SILOMER_BREAK_FORCE_N = 23;
 
 const SILOMER_SHIFT_X = 51.789;
 const SILOMER_SHIFT_Y = -21.6446;
@@ -461,17 +463,101 @@ const edgeMax = flatMax.map((pathNums, pathIndex) => {
   return rest.map((value, i) => value + flatDelta[i]);
 });
 
+const brokenSceneUser = fs.readFileSync(brokenUserPath, "utf8");
+const brokenRaw = extractSilomerPathsUntil(
+  brokenSceneUser,
+  "M28.695",
+  "<defs>"
+);
+if (brokenRaw.length !== alignedNewRest.length) {
+  throw new Error(
+    `scene-broken-user.svg má ${brokenRaw.length} siloměrových cest, očekáváno ${alignedNewRest.length}.`
+  );
+}
+for (let p = 0; p < alignedNewRest.length; p++) {
+  if (brokenRaw[p].key !== alignedNewRest[p].key) {
+    throw new Error(
+      `Broken path ${p}: struktura nesedí (${brokenRaw[p].key} vs ${alignedNewRest[p].key}).`
+    );
+  }
+}
+const brokenShiftX = flatMax[0][0] - brokenRaw[0].nums[0];
+const brokenShiftY = flatMax[0][1] - brokenRaw[0].nums[1];
+const flatBroken = brokenRaw.map((pathItem) =>
+  shiftPathNums(pathItem.nums, brokenShiftX, brokenShiftY)
+);
+const edgeBroken = flatBroken.map((pathNums, pathIndex) => {
+  const rest = alignedEdgeRest[pathIndex].nums;
+  const flatDelta = pathNums.map(
+    (value, i) => value - flatRest[pathIndex][i]
+  );
+  return rest.map((value, i) => value + flatDelta[i]);
+});
+
+function hookTailFromBrokenScene(svg) {
+  if (!svg.includes("L364.604 87.5095")) {
+    throw new Error("scene-broken-user.svg nemá druhý háček k přetržené pružině.");
+  }
+  // User art je posunuté o +5 px na ose X oproti scene-flat-user.
+  return { x: 359.604, y: 87.5095 };
+}
+
+const brokenHookRestFlat = hookTailFromBrokenScene(brokenSceneUser);
+const brokenBodyDx = flatMax[0][0] - flatRest[0][0];
+const brokenBodyDy = flatMax[0][1] - flatRest[0][1];
+const brokenHookTailFlat = {
+  x: brokenHookRestFlat.x + brokenBodyDx,
+  y: brokenHookRestFlat.y + brokenBodyDy,
+};
+const brokenHookTailEdge = {
+  x: brokenHookTailFlat.x + (edgeSections.hookAttach.x - 399.75),
+  y: brokenHookTailFlat.y + (edgeSections.hookAttach.y - 79.7734),
+};
+
+const flatBrokenMarkup = alignedNewRest
+  .map(
+    (pathItem, index) =>
+      `<path id="brokenPath${index}" d="${rebuildPathD(
+        pathStructure(pathItem.d),
+        flatBroken[index]
+      )}" ${pathItem.attrs}/>`
+  )
+  .join("\n");
+
+const edgeBrokenMarkup = alignedNewRest
+  .map(
+    (pathItem, index) =>
+      `<path id="brokenPathEdge${index}" d="${rebuildPathD(
+        pathStructure(pathItem.d),
+        edgeBroken[index]
+      )}" ${pathItem.attrs}/>`
+  )
+  .join("\n");
+
+const brokenHookLooseFlat = { x: 373.25, y: 86.2734 };
+const brokenHookLooseEdge = {
+  x: edgeSections.hookSilomer.x,
+  y: edgeSections.hookSilomer.y,
+};
+
 const allForces = [...morphFrames.map((frame) => frame.force), SILOMER_RATED_N];
 const allFrames = [...frames, flatMax];
 const allEdgeFrames = [...edgeFrames, edgeMax];
 
 const morph = {
   forces: allForces,
+  breakForceN: SILOMER_BREAK_FORCE_N,
+  brokenHookTailFlat,
+  brokenHookTailEdge,
+  brokenHookLooseFlat,
+  brokenHookLooseEdge,
   paths: alignedNewRest.map((basePath, index) => ({
     attrs: basePath.attrs,
     structure: pathStructure(basePath.d),
     frames: allFrames.map((frameSet) => frameSet[index]),
     edgeFrames: allEdgeFrames.map((frameSet) => frameSet[index]),
+    brokenFlat: flatBroken[index],
+    brokenEdge: edgeBroken[index],
   })),
 };
 
@@ -613,6 +699,9 @@ ${tagBeamPaths(flatSections.beam).join("\n")}
 <g id="silomerMorph">
 ${flatMorphMarkup}
 </g>
+<g id="silomerBroken" style="display:none">
+${flatBrokenMarkup}
+</g>
 <g id="forceReadoutWrap">
 ${flatSections.readoutBox}
 <text id="forceReadout" x="${READOUT_FLAT.x}" y="${READOUT_FLAT.y}" transform="rotate(${READOUT_FLAT.angle} ${READOUT_FLAT.x} ${READOUT_FLAT.y})" text-anchor="middle" dominant-baseline="middle" font-family="Fenomen Sans, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171923">0 N</text>
@@ -621,6 +710,7 @@ ${flatSections.readoutBox}
 </g>
 <g id="beamHookFlat">
 ${tagBeamPaths([flatSections.hook]).join("\n")}
+<path class="beam-hook-broken" style="display:none" d="M399.75 79.7734L${brokenHookTailFlat.x} ${brokenHookTailFlat.y}" stroke="black"/>
 </g>
 </g>
 <g id="edgeScene" style="display:none" transform="translate(0 ${EDGE_LAYOUT_Y_OFFSET})">
@@ -631,6 +721,9 @@ ${tagBeamPaths(edgeSections.beam).join("\n")}
 <g id="silomerMorphEdge">
 ${edgeMorphMarkup}
 </g>
+<g id="silomerBrokenEdge" style="display:none">
+${edgeBrokenMarkup}
+</g>
 <g id="forceReadoutWrapEdge">
 ${edgeSections.readoutBox}
 <text id="forceReadoutEdge" x="${READOUT_EDGE.x}" y="${READOUT_EDGE.y}" transform="rotate(${READOUT_EDGE.angle} ${READOUT_EDGE.x} ${READOUT_EDGE.y})" text-anchor="middle" dominant-baseline="middle" font-family="Fenomen Sans, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171923">0 N</text>
@@ -639,6 +732,7 @@ ${edgeSections.readoutBox}
 </g>
 <g id="beamHookEdge">
 ${tagBeamPaths([edgeSections.hook]).join("\n")}
+<path class="beam-hook-broken" style="display:none" d="M${edgeSections.hookAttach.x} ${edgeSections.hookAttach.y}L${brokenHookTailEdge.x} ${brokenHookTailEdge.y}" stroke="black"/>
 </g>
 </g>
 </g>
@@ -668,5 +762,5 @@ console.log(
   `READOUT_FLAT=${JSON.stringify(READOUT_FLAT)} READOUT_EDGE=${JSON.stringify(READOUT_EDGE)}`
 );
 console.log(
-  `viewBox="${VIEW_X} ${VIEW_Y} ${VIEW_W} ${VIEW_H}"`
+  `broken hook tail flat=(${brokenHookTailFlat.x.toFixed(3)}, ${brokenHookTailFlat.y.toFixed(3)}) edge=(${brokenHookTailEdge.x.toFixed(3)}, ${brokenHookTailEdge.y.toFixed(3)})`
 );

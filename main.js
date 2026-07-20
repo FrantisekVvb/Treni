@@ -24,6 +24,8 @@ const MU_K_CARPET = 1.5;
 const FRICTION_IMMOVEABLE_N = 20;
 /** Jmenovitý rozsah siloměru (N) */
 const SILOMER_RATED_N = 20;
+/** Nad 20 N se pružina krátce přetáhne a přetrhne */
+const SILOMER_BREAK_FORCE_N = 23;
 /** Statické tření = kinematické × tento poměr (původní chování simulace) */
 const MU_STATIC_OVER_KINETIC = 4 / 3;
 const MAX_STRETCH_PX = 120;
@@ -52,6 +54,18 @@ const STRETCH_KINETIC = WOOD_REF_FRICTION.kineticN / SPRING_K_WOOD;
 const SPRING_DRAG_FOLLOW = 0.34;
 const SPRING_RELEASE_STIFFNESS = 0.24;
 const SPRING_RELEASE_DAMPING = 0.76;
+const SPRING_RECOIL_STIFFNESS = 0.03;
+const SPRING_RECOIL_DAMPING = 0.91;
+const SILOMER_BROKEN_MESSAGE = "Siloměr se přetrhl.";
+/** Pouzdro + stupnice zůstanou na pozici z 20 N */
+const SILOMER_HOUSING_PATH_INDICES = [0, 10, 11, 24, 46];
+/** Červený ukazatel, tyč a háček u hranolu — po přetržení se nepohybují */
+const SILOMER_HOOK_GAUGE_PATH_INDICES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+/** Vinutí pružiny — po přetržení se vrátí z 20 N do klidu v pouzdře */
+const SILOMER_COIL_PATH_INDICES = [
+  12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+];
+const SILOMER_ROD_PATH_INDEX = 3;
 
 /** Hranol 20,3×5,2×9,4 cm = 1000 cm³; malá ocel = ¼ objemu */
 const BEAM_VOLUME_FULL_CM3 = 1000;
@@ -162,11 +176,20 @@ let silomerEdgeHitEl = null;
 let morphData = null;
 let morphPathEls = [];
 let morphPathEdgeEls = [];
+let silomerMorphFlatEl = null;
+let silomerMorphEdgeEl = null;
+let silomerBrokenFlatEl = null;
+let silomerBrokenEdgeEl = null;
+let beamHookBrokenFlatEl = null;
+let beamHookBrokenEdgeEl = null;
 
 let beamSlidePx = 0;
 let stretchPx = 0;
 let stretchVisualPx = 0;
 let stretchVisualVelocity = 0;
+let springBroken = false;
+let springRecoilT = 0;
+let springRecoilVelocity = 0;
 let sliding = false;
 let dragging = false;
 let pointerId = null;
@@ -229,8 +252,33 @@ function maxGaugeStretchPx() {
   return Math.min(MAX_STRETCH_PX, SILOMER_RATED_N / k);
 }
 
+/** Natažení těsně před přetržením (≈23 N) */
+function breakStretchPx() {
+  const k = springK();
+  if (k <= 0) return maxGaugeStretchPx();
+  return maxGaugeStretchPx() + (SILOMER_BREAK_FORCE_N - SILOMER_RATED_N) / k;
+}
+
 function forceFromStretch(px) {
   return Math.max(0, px * springK());
+}
+
+function morphForceFromStretch(stretchPxValue) {
+  const maxStretch = maxGaugeStretchPx();
+  const force = forceFromStretch(stretchPxValue);
+  if (!beamIsImmobile() || springBroken) {
+    return Math.min(SILOMER_RATED_N, force);
+  }
+  if (stretchPxValue <= maxStretch) {
+    return Math.min(SILOMER_RATED_N, force);
+  }
+  const overPx = stretchPxValue - maxStretch;
+  const overMaxPx = breakStretchPx() - maxStretch;
+  if (overMaxPx <= 0) return SILOMER_RATED_N;
+  const overN =
+    (SILOMER_BREAK_FORCE_N - SILOMER_RATED_N) *
+    Math.min(1, overPx / overMaxPx);
+  return SILOMER_RATED_N + overN;
 }
 
 function morphForceFromDisplay(displayForceN) {
@@ -306,14 +354,30 @@ function morphNumsForPath(pathItem, frameKey, segment, t) {
   return lerpNums(frameSet[segment], frameSet[segment + 1], t);
 }
 
+function morphNumsForForce(pathItem, frameKey, force, forces) {
+  const frameSet = pathItem[frameKey];
+  const last = forces.length - 1;
+  if (force <= forces[last]) {
+    const { segment, t } = morphSegmentForForce(force, forces);
+    return morphNumsForPath(pathItem, frameKey, segment, t);
+  }
+
+  const span = forces[last] - forces[last - 1];
+  const extraT = span === 0 ? 0 : (force - forces[last]) / span;
+  const lastFrame = frameSet[last];
+  const prevFrame = frameSet[last - 1];
+  return lastFrame.map(
+    (value, index) => value + (lastFrame[index] - prevFrame[index]) * extraT
+  );
+}
+
 function applySpringMorphToSet(pathEls, frameKey, force) {
   if (!morphData || !pathEls.length) return;
 
   const forces = morphData.forces;
-  const { segment, t } = morphSegmentForForce(force, forces);
 
   for (let i = 0; i < morphData.paths.length; i++) {
-    const nums = morphNumsForPath(morphData.paths[i], frameKey, segment, t);
+    const nums = morphNumsForForce(morphData.paths[i], frameKey, force, forces);
 
     pathEls[i].setAttribute(
       "d",
@@ -325,6 +389,128 @@ function applySpringMorphToSet(pathEls, frameKey, force) {
 function applySpringMorph(force) {
   applySpringMorphToSet(morphPathEls, "frames", force);
   applySpringMorphToSet(morphPathEdgeEls, "edgeFrames", force);
+}
+
+function housingAnchorDelta(frameKey) {
+  const pathItem = morphData.paths[0];
+  const rest = pathItem[frameKey][0];
+  const maxIdx = morphData.forces.length - 1;
+  const maxFrame = pathItem[frameKey][maxIdx];
+  return {
+    dx: maxFrame[0] - rest[0],
+    dy: maxFrame[1] - rest[1],
+  };
+}
+
+function restSpringAtHousingNums(pathItem, frameKey) {
+  const rest = pathItem[frameKey][0];
+  const { dx, dy } = housingAnchorDelta(frameKey);
+  return rest.map((v, i) => (i % 2 === 0 ? v + dx : v + dy));
+}
+
+function morphNumsForSpringRecoil(pathIndex, pathItem, frameKey) {
+  const maxIdx = morphData.forces.length - 1;
+  const brokenKey = frameKey === "frames" ? "brokenFlat" : "brokenEdge";
+  const maxFrame = pathItem[frameKey][maxIdx];
+
+  if (SILOMER_HOUSING_PATH_INDICES.includes(pathIndex)) {
+    return maxFrame;
+  }
+
+  if (SILOMER_HOOK_GAUGE_PATH_INDICES.includes(pathIndex)) {
+    return pathItem[brokenKey];
+  }
+
+  if (SILOMER_COIL_PATH_INDICES.includes(pathIndex)) {
+    return lerpNums(
+      maxFrame,
+      restSpringAtHousingNums(pathItem, frameKey),
+      springRecoilT
+    );
+  }
+
+  return maxFrame;
+}
+
+function applySpringRecoilMorphToSet(pathEls, frameKey) {
+  if (!morphData || !pathEls.length) return;
+
+  for (let i = 0; i < morphData.paths.length; i++) {
+    const pathItem = morphData.paths[i];
+    const nums = morphNumsForSpringRecoil(i, pathItem, frameKey);
+    pathEls[i].setAttribute(
+      "d",
+      rebuildPath(pathItem.structure, nums)
+    );
+  }
+}
+
+function applySpringRecoilMorph() {
+  applySpringRecoilMorphToSet(morphPathEls, "frames");
+  applySpringRecoilMorphToSet(morphPathEdgeEls, "edgeFrames");
+}
+
+function hookPointFromMorphRod(frameKey, force) {
+  const pathItem = morphData.paths[SILOMER_ROD_PATH_INDEX];
+  const nums = springBroken
+    ? morphNumsForSpringRecoil(SILOMER_ROD_PATH_INDEX, pathItem, frameKey)
+    : morphNumsForForce(pathItem, frameKey, force, morphData.forces);
+
+  return {
+    x: nums[nums.length - 2],
+    y: nums[nums.length - 1],
+  };
+}
+
+function updateBeamHooksFromSpringMorph(force) {
+  if (!morphData) return;
+
+  const variant = activeBeamVariant();
+  const scale = volumeLinearScale(variant.volumeCm3);
+  const flatOffset = silomerOffsetForScale(
+    scale,
+    FLAT_BEAM_SCALE_ORIGIN,
+    FLAT_HOOK_ATTACH
+  );
+  const edgeOffset = silomerOffsetForScale(
+    scale,
+    EDGE_BEAM_SCALE_ORIGIN,
+    EDGE_HOOK_ATTACH
+  );
+  const flatEnd = hookPointFromMorphRod("frames", force);
+  const edgeEnd = hookPointFromMorphRod("edgeFrames", force);
+
+  applyBeamHook(
+    beamHookFlatEl,
+    scale,
+    FLAT_BEAM_SCALE_ORIGIN,
+    flatEnd,
+    FLAT_HOOK_ATTACH,
+    flatOffset
+  );
+  applyBeamHook(
+    beamHookEdgeEl,
+    scale,
+    EDGE_BEAM_SCALE_ORIGIN,
+    edgeEnd,
+    EDGE_HOOK_ATTACH,
+    edgeOffset
+  );
+}
+
+function stepSpringRecoil() {
+  if (!springBroken || springRecoilT >= 1) return;
+
+  const displacement = 1 - springRecoilT;
+  springRecoilVelocity =
+    springRecoilVelocity * SPRING_RECOIL_DAMPING +
+    displacement * SPRING_RECOIL_STIFFNESS;
+  springRecoilT += springRecoilVelocity;
+
+  if (springRecoilT >= 1 - 0.001) {
+    springRecoilT = 1;
+    springRecoilVelocity = 0;
+  }
 }
 
 function stepSpringVisual() {
@@ -360,6 +546,9 @@ function applyBeamMaterialToRoot(root, material, bodyFill) {
     el.setAttribute("stroke", material.wire);
   }
   for (const el of root.querySelectorAll(".beam-hook")) {
+    el.setAttribute("stroke", material.hook);
+  }
+  for (const el of root.querySelectorAll(".beam-hook-broken")) {
     el.setAttribute("stroke", material.hook);
   }
 }
@@ -411,6 +600,14 @@ function applySilomerOffset(silomerEl, offset) {
   }
 
   silomerEl.setAttribute("transform", `translate(${offset.x} ${offset.y})`);
+}
+
+function applyForceReadout(forceLabel, brokenMessage) {
+  for (const readoutEl of [forceReadoutEl, forceReadoutEdgeEl]) {
+    if (!readoutEl) continue;
+    readoutEl.textContent = forceLabel;
+    readoutEl.setAttribute("font-size", brokenMessage ? "9" : "14");
+  }
 }
 
 function applyBeamHook(root, scale, origin, silomerEnd, beamEnd, silomerOffset) {
@@ -532,16 +729,27 @@ function applyBeamOrientation() {
   }
 }
 
+function setSpringBrokenVisual() {
+  if (silomerMorphFlatEl) silomerMorphFlatEl.style.display = "";
+  if (silomerMorphEdgeEl) silomerMorphEdgeEl.style.display = "";
+  if (silomerBrokenFlatEl) silomerBrokenFlatEl.style.display = "none";
+  if (silomerBrokenEdgeEl) silomerBrokenEdgeEl.style.display = "none";
+  if (beamHookBrokenFlatEl) beamHookBrokenFlatEl.style.display = "none";
+  if (beamHookBrokenEdgeEl) beamHookBrokenEdgeEl.style.display = "none";
+}
+
 function renderScene() {
   const beamOffset = slideOffset(beamSlidePx);
-  const springForce = Math.min(SILOMER_RATED_N, forceFromStretch(stretchPx));
-  const displayForce = Math.min(
-    SILOMER_RATED_N,
-    forceFromStretch(stretchVisualPx)
-  );
-  const morphForce = morphForceFromDisplay(
-    dragging ? springForce : displayForce
-  );
+  const maxStretch = maxGaugeStretchPx();
+  const displayForce = springBroken
+    ? SILOMER_RATED_N * (1 - springRecoilT)
+    : Math.min(
+        SILOMER_BREAK_FORCE_N,
+        forceFromStretch(stretchVisualPx)
+      );
+  const morphForce = springBroken
+    ? SILOMER_RATED_N
+    : morphForceFromStretch(dragging ? stretchPx : stretchVisualPx);
 
   if (beamEl) {
     beamEl.setAttribute(
@@ -552,34 +760,47 @@ function renderScene() {
 
   applyBeamOrientation();
   applyBeamMaterial();
+  setSpringBrokenVisual();
 
-  applySpringMorph(morphForce);
+  if (springBroken) {
+    applySpringRecoilMorph();
+  } else {
+    applySpringMorph(morphForce);
+  }
+  updateBeamHooksFromSpringMorph(morphForce);
 
-  const forceLabel = formatForce(displayForce);
-  if (forceReadoutEl) forceReadoutEl.textContent = forceLabel;
-  if (forceReadoutEdgeEl) forceReadoutEdgeEl.textContent = forceLabel;
+  const showBrokenMessage = springBroken && springRecoilT >= 0.999;
+  const forceLabel = showBrokenMessage
+    ? SILOMER_BROKEN_MESSAGE
+    : formatForce(displayForce);
+  applyForceReadout(forceLabel, showBrokenMessage);
 
   for (const hitEl of [silomerHitEl, silomerEdgeHitEl]) {
     if (!hitEl) continue;
     const { staticN } = beamFrictionForces();
-    hitEl.setAttribute(
-      "aria-valuemax",
-      String(Math.ceil(Math.min(staticN, SILOMER_RATED_N)))
-    );
+    const ariaMax = beamIsImmobile()
+      ? SILOMER_BREAK_FORCE_N
+      : Math.min(staticN, SILOMER_RATED_N);
+    hitEl.setAttribute("aria-valuemax", String(Math.ceil(ariaMax)));
     hitEl.setAttribute(
       "aria-valuenow",
       String(Math.round(displayForce * 10) / 10)
     );
     hitEl.setAttribute(
       "aria-valuetext",
-      `${forceLabel.replace(" N", "")} newtonů`
+      springBroken
+        ? springRecoilT < 0.999
+          ? "Pružina se vrací"
+          : SILOMER_BROKEN_MESSAGE
+        : `${forceLabel.replace(" N", "")} newtonů`
     );
-    hitEl.style.cursor = "grab";
+    hitEl.style.cursor = springBroken ? "not-allowed" : "grab";
   }
 }
 
 function animationLoop() {
   stepSpringVisual();
+  stepSpringRecoil();
   renderScene();
   requestAnimationFrame(animationLoop);
 }
@@ -615,7 +836,23 @@ function applyPull(handleTravelPx) {
 
   if (beamIsImmobile()) {
     sliding = false;
-    stretchPx = clamp(grabStretch + travel, 0, maxStretch);
+    if (springBroken) {
+      stretchPx = maxStretch;
+      beamSlidePx = grabBeam;
+      applyVisuals();
+      return;
+    }
+
+    const breakStretch = breakStretchPx();
+    stretchPx = clamp(grabStretch + travel, 0, breakStretch);
+    if (stretchPx >= breakStretch - 0.05) {
+      springBroken = true;
+      springRecoilT = 0;
+      springRecoilVelocity = 0;
+      stretchPx = maxStretch;
+      stretchVisualPx = maxStretch;
+      stretchVisualVelocity = 0;
+    }
     beamSlidePx = grabBeam;
     applyVisuals();
     return;
@@ -645,6 +882,9 @@ function resetScene() {
   if (dragging) endDrag();
 
   sliding = false;
+  springBroken = false;
+  springRecoilT = 0;
+  springRecoilVelocity = 0;
   stretchPx = 0;
   stretchVisualPx = 0;
   stretchVisualVelocity = 0;
@@ -659,7 +899,13 @@ function endDrag() {
   dragging = false;
   pointerId = null;
   sliding = false;
-  stretchPx = 0;
+  if (springBroken) {
+    stretchPx = maxGaugeStretchPx();
+    stretchVisualPx = maxGaugeStretchPx();
+    stretchVisualVelocity = 0;
+  } else {
+    stretchPx = 0;
+  }
   maxTravelPx = 0;
   silomerHitEl?.classList.remove("is-dragging");
   silomerEdgeHitEl?.classList.remove("is-dragging");
@@ -688,6 +934,8 @@ function handlePointerEnd(event) {
 }
 
 function beginDrag(event) {
+  if (springBroken) return;
+
   dragging = true;
   pointerId = event.pointerId;
   grabClientX = event.clientX;
@@ -806,7 +1054,7 @@ function bindResetButton() {
 }
 
 async function init() {
-  const assetVersion = "20260720-silomer-body-continue";
+  const assetVersion = "20260720-silomer-broken-message";
   const [sceneResponse, morphResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
@@ -830,6 +1078,12 @@ async function init() {
   edgeSceneEl = padWrap.querySelector("#edgeScene");
   silomerFlatEl = padWrap.querySelector("#silomerFlat");
   silomerEdgeEl = padWrap.querySelector("#silomerEdge");
+  silomerMorphFlatEl = padWrap.querySelector("#silomerMorph");
+  silomerMorphEdgeEl = padWrap.querySelector("#silomerMorphEdge");
+  silomerBrokenFlatEl = padWrap.querySelector("#silomerBroken");
+  silomerBrokenEdgeEl = padWrap.querySelector("#silomerBrokenEdge");
+  beamHookBrokenFlatEl = beamHookFlatEl?.querySelector(".beam-hook-broken");
+  beamHookBrokenEdgeEl = beamHookEdgeEl?.querySelector(".beam-hook-broken");
   forceReadoutEl = padWrap.querySelector("#forceReadout");
   forceReadoutEdgeEl = padWrap.querySelector("#forceReadoutEdge");
   silomerHitEl = padWrap.querySelector("#silomer");
@@ -852,6 +1106,8 @@ async function init() {
     !edgeSceneEl ||
     !silomerFlatEl ||
     !silomerEdgeEl ||
+    !silomerMorphFlatEl ||
+    !silomerMorphEdgeEl ||
     !forceReadoutEl ||
     !forceReadoutEdgeEl ||
     !silomerHitEl ||
