@@ -85,6 +85,11 @@ const SILOMER_HANDLE_PATH_INDEX = 11;
 const SILOMER_ROD_PATH_INDEX = 3;
 
 /** Hranol 20,3×5,2×9,4 cm = 1000 cm³; malá ocel = ¼ objemu, malé dřevo = ½ objemu */
+const BEAM_DIM_LONG_CM = 20.3;
+const BEAM_DIM_MID_CM = 9.4;
+const BEAM_DIM_SHORT_CM = 5.2;
+const BEAM_FRICTION_AREA_FLAT_CM2 = BEAM_DIM_LONG_CM * BEAM_DIM_MID_CM;
+const BEAM_FRICTION_AREA_EDGE_CM2 = BEAM_DIM_LONG_CM * BEAM_DIM_SHORT_CM;
 const BEAM_VOLUME_FULL_CM3 = 1000;
 const BEAM_VOLUME_SMALL_CM3 = BEAM_VOLUME_FULL_CM3 / 4;
 const BEAM_VOLUME_WOOD_SMALL_CM3 = BEAM_VOLUME_FULL_CM3 / 2;
@@ -109,11 +114,30 @@ function beamMassG(type, volumeCm3) {
 /** Střed spodní hrany hranolu ve flat/edge scéně (bod na podložce) */
 const FLAT_BEAM_SCALE_ORIGIN = { x: 460, y: 132 };
 const EDGE_BEAM_SCALE_ORIGIN = { x: 428.4755, y: 189.113 };
+/** Střed delší spodní hrany hranolu — počátek šipky tíhy */
+const FLAT_BEAM_WEIGHT_ANCHOR = { x: 555.25, y: 116.9998 };
+const EDGE_BEAM_WEIGHT_ANCHOR = { x: 546.628, y: 174.113 };
 /** Konec háčku hranolu — bod připojení siloměru (siloměr vlevo) */
 const FLAT_HOOK_ATTACH = { x: 399.75, y: 84.25 };
 const FLAT_HOOK_SILOMER = { x: 373.25, y: 90.75 };
 const EDGE_HOOK_ATTACH = { x: 425.75, y: 122.771 };
 const EDGE_HOOK_SILOMER = { x: 399.25, y: 129.271 };
+const WEIGHT_ARROW_SHAFT_TOP = 0;
+const WEIGHT_ARROW_SHAFT_BOTTOM = 129.5;
+const WEIGHT_ARROW_HEAD_TIP = 130.561;
+const WEIGHT_ARROW_LABEL_X = 65;
+const WEIGHT_ARROW_LABEL_Y = 124.5;
+const WEIGHT_ARROW_SHAFT_X = 11.0459;
+/** Referenční tíha středního dřevěného hranolu — základní délka šipky */
+const BEAM_WEIGHT_ARROW_REF_N = (WOOD_MASS_G / 1000) * GRAVITY;
+const WEIGHT_ARROW_BASE_LENGTH =
+  WEIGHT_ARROW_HEAD_TIP - WEIGHT_ARROW_SHAFT_TOP;
+/** Zkrácení délky šipky o 2/3, prodloužení o 1/4, pak zkrácení o 1/3 */
+const WEIGHT_ARROW_LENGTH_SCALE = (1 / 3) * (5 / 4) * (2 / 3);
+/** Tloušťka šipky — širší tělo a hrot, délka beze změny */
+const WEIGHT_ARROW_BOLD_SCALE = 2;
+const WEIGHT_ARROW_LABEL_PX = 24;
+const WEIGHT_ARROW_COLOR = "#FF5F5F";
 
 const SURFACE_VARIANTS = {
   metal: {
@@ -293,6 +317,7 @@ let silomerHintFlatEl = null;
 let silomerHintEdgeEl = null;
 let silomerBrokenBannerEl = null;
 let silomerHintDismissed = false;
+let weightDisplayTemplate = "";
 
 function hookSilomerPointFromMorph(frameKey) {
   const nums = morphData.paths[3][frameKey][0];
@@ -407,6 +432,127 @@ function formatBeamWeight(grams) {
 
 function formatBeamVolume(cm3) {
   return `${Math.round(cm3).toLocaleString("cs-CZ")} cm³`;
+}
+
+function beamFrictionAreaCm2() {
+  const baseArea = beamOnEdge
+    ? BEAM_FRICTION_AREA_EDGE_CM2
+    : BEAM_FRICTION_AREA_FLAT_CM2;
+  const scale = volumeLinearScale(activeBeamVariant().volumeCm3);
+  return baseArea * scale * scale;
+}
+
+function formatBeamFrictionArea(areaCm2) {
+  return `${Math.round(areaCm2).toLocaleString("cs-CZ")} cm²`;
+}
+
+function formatWeightLabel(weightN) {
+  return formatForce(weightN);
+}
+
+function getWeightArrowExtension(heightUnits) {
+  return WEIGHT_ARROW_BASE_LENGTH * Math.max(0, heightUnits - 1);
+}
+
+function buildWeightArrowShaftPath(extension) {
+  const shaftBottom = WEIGHT_ARROW_SHAFT_BOTTOM + extension;
+  return `M11.0459 0H9.5459V${shaftBottom}H11.0459H12.5459V0H11.0459Z`;
+}
+
+function ensureBeamWeightArrow(root) {
+  let group = root.querySelector(".beam-weight-arrow");
+  if (!group) {
+    group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("class", "beam-weight-arrow");
+    group.setAttribute("pointer-events", "none");
+    group.setAttribute("aria-hidden", "true");
+    root.appendChild(group);
+  }
+  return group;
+}
+
+function renderBeamWeightArrow(group, anchor, weightN, heightUnits) {
+  if (!weightDisplayTemplate) return;
+
+  const extension = getWeightArrowExtension(heightUnits);
+  const arrowScaleX = WEIGHT_ARROW_BOLD_SCALE * WEIGHT_ARROW_LENGTH_SCALE;
+  const arrowScaleY = WEIGHT_ARROW_LENGTH_SCALE;
+  group.setAttribute(
+    "transform",
+    `translate(${anchor.x} ${anchor.y}) scale(${arrowScaleX} ${arrowScaleY}) translate(${-WEIGHT_ARROW_SHAFT_X} ${-WEIGHT_ARROW_SHAFT_TOP})`
+  );
+
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = weightDisplayTemplate.trim();
+  const templateSvg = wrapper.firstElementChild;
+  if (!templateSvg) return;
+
+  while (group.firstChild) {
+    group.removeChild(group.firstChild);
+  }
+
+  for (const child of templateSvg.children) {
+    group.appendChild(document.importNode(child, true));
+  }
+
+  const shaft = group.querySelector(".weight-display__arrow-shaft");
+  const head = group.querySelector(".weight-display__arrow-head");
+
+  if (shaft) {
+    shaft.setAttribute("d", buildWeightArrowShaftPath(extension));
+    shaft.setAttribute("fill", WEIGHT_ARROW_COLOR);
+  }
+
+  if (head) {
+    head.setAttribute("fill", WEIGHT_ARROW_COLOR);
+    if (extension > 0) {
+      head.setAttribute("transform", `translate(0 ${extension})`);
+    } else {
+      head.removeAttribute("transform");
+    }
+  }
+
+  group.querySelector(".weight-display__label-text")?.remove();
+
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", String(WEIGHT_ARROW_LABEL_X));
+  text.setAttribute("y", String(WEIGHT_ARROW_LABEL_Y + extension));
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("dominant-baseline", "middle");
+  text.setAttribute("class", "weight-display__label-text");
+  text.setAttribute("fill", WEIGHT_ARROW_COLOR);
+  text.setAttribute("font-size", String(WEIGHT_ARROW_LABEL_PX / arrowScaleY));
+  text.textContent = formatWeightLabel(weightN);
+  group.appendChild(text);
+}
+
+function beamWeightHeightUnits(weightN) {
+  if (BEAM_WEIGHT_ARROW_REF_N <= 0) return 1;
+  return Math.max(0.35, weightN / BEAM_WEIGHT_ARROW_REF_N);
+}
+
+function updateBeamWeightArrows() {
+  const variant = activeBeamVariant();
+  const weightN = (variant.massG / 1000) * GRAVITY;
+  const heightUnits = beamWeightHeightUnits(weightN);
+
+  if (beamFlatEl) {
+    renderBeamWeightArrow(
+      ensureBeamWeightArrow(beamFlatEl),
+      FLAT_BEAM_WEIGHT_ANCHOR,
+      weightN,
+      heightUnits
+    );
+  }
+
+  if (beamEdgeEl) {
+    renderBeamWeightArrow(
+      ensureBeamWeightArrow(beamEdgeEl),
+      EDGE_BEAM_WEIGHT_ANCHOR,
+      weightN,
+      heightUnits
+    );
+  }
 }
 
 function formatForce(newtons) {
@@ -918,11 +1064,12 @@ function applyBeamMaterial() {
   );
 
   if (beamMassEl) {
-    beamMassEl.innerHTML = `<p class="scene-meta__line">Tíha = ${formatBeamWeight(variant.massG)}</p><p class="scene-meta__line">Objem = ${formatBeamVolume(variant.volumeCm3)}</p>`;
+    beamMassEl.innerHTML = `<p class="scene-meta__line">Tíha = ${formatBeamWeight(variant.massG)}</p><p class="scene-meta__line">Objem = ${formatBeamVolume(variant.volumeCm3)}</p><p class="scene-meta__line">Velikost třecí plochy = ${formatBeamFrictionArea(beamFrictionAreaCm2())}</p>`;
   }
 
   updateBeamButtons();
   applySurface();
+  updateBeamWeightArrows();
 }
 
 function applyBeamOrientation() {
@@ -1409,14 +1556,18 @@ function refreshMuEditorIfOpen() {
 }
 
 async function init() {
-  const assetVersion = "20260720-silomer-broken-message";
-  const [sceneResponse, morphResponse] = await Promise.all([
+  const assetVersion = "20260720-weight-arrow-red";
+  const [sceneResponse, morphResponse, weightResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
+    fetch(`assets/weight-display.svg?v=${assetVersion}`, { cache: "no-store" }),
   ]);
 
   if (!sceneResponse.ok) throw new Error("Nepodařilo se načíst scénu.");
   if (!morphResponse.ok) throw new Error("Nepodařilo se načíst morph data.");
+  if (!weightResponse.ok) throw new Error("Nepodařilo se načíst šablonu tíhy.");
+
+  weightDisplayTemplate = await weightResponse.text();
 
   padWrap.innerHTML = await sceneResponse.text();
   morphData = await morphResponse.json();

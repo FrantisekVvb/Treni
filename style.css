@@ -357,10 +357,11 @@ button {
 .scene-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem;
-  margin: 0;
-  text-align: center;
+  width: 100%;
+  margin: 1.25rem 0 0;
+  text-align: left;
 }
 
 .scene-meta__line {
@@ -381,9 +382,9 @@ button {
 .scene-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  width: min(100%, 16rem);
+  width: 100%;
 }
 
 .scene-workspace {
@@ -413,7 +414,7 @@ button {
 .scene-stage {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   width: min(954px, 100%);
   max-height: 100%;
@@ -432,6 +433,19 @@ button {
   width: 100%;
   height: auto;
   overflow: visible;
+}
+
+.weight-display__arrow-shaft,
+.weight-display__arrow-head {
+  fill: #ff5f5f;
+}
+
+.weight-display__label-text {
+  fill: #ff5f5f;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: "Fenomen Sans", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .silomer-broken-banner {
