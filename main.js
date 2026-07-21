@@ -166,6 +166,7 @@ const SURFACE_VARIANTS = {
       "url(#paint2_linear_2095_869)",
       "url(#paint3_linear_2095_869)",
     ],
+    padTexture: "url(#texMetal)",
     padStroke: "#2F363E",
   },
   leather: {
@@ -179,6 +180,7 @@ const SURFACE_VARIANTS = {
       "url(#leatherPad2)",
       "url(#leatherPad3)",
     ],
+    padTexture: "url(#texLeather)",
     padStroke: "#3A2418",
   },
   carpet: {
@@ -192,6 +194,7 @@ const SURFACE_VARIANTS = {
       "url(#carpetPad2)",
       "url(#carpetPad3)",
     ],
+    padTexture: "url(#texCarpet)",
     padStroke: "#2F3D2A",
   },
   wood: {
@@ -205,6 +208,7 @@ const SURFACE_VARIANTS = {
       "url(#woodPad2)",
       "url(#woodPad3)",
     ],
+    padTexture: "url(#texWood)",
     padStroke: "#5C3D1E",
   },
   ice: {
@@ -218,6 +222,7 @@ const SURFACE_VARIANTS = {
       "url(#icePad2)",
       "url(#icePad3)",
     ],
+    padTexture: "url(#texIce)",
     padStroke: "#6A8FA8",
   },
   rubber: {
@@ -231,6 +236,7 @@ const SURFACE_VARIANTS = {
       "url(#rubberPad2)",
       "url(#rubberPad3)",
     ],
+    padTexture: "url(#texRubber)",
     padStroke: "#2A2A2A",
   },
 };
@@ -241,6 +247,7 @@ const BEAM_VARIANTS = {
   wood: {
     bodyFlat: "url(#beamWoodFlat)",
     bodyEdge: "url(#beamWoodEdge)",
+    bodyTexture: "url(#texBeamWood)",
     wire: "#6B3F1C",
     hook: "#2A1A0E",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
@@ -250,6 +257,7 @@ const BEAM_VARIANTS = {
   wood2kg: {
     bodyFlat: "url(#beamWoodFlat)",
     bodyEdge: "url(#beamWoodEdge)",
+    bodyTexture: "url(#texBeamWood)",
     wire: "#6B3F1C",
     hook: "#2A1A0E",
     volumeCm3: BEAM_VOLUME_WOOD_2KG_CM3,
@@ -259,6 +267,7 @@ const BEAM_VARIANTS = {
   woodSmall: {
     bodyFlat: "url(#beamWoodFlat)",
     bodyEdge: "url(#beamWoodEdge)",
+    bodyTexture: "url(#texBeamWood)",
     wire: "#6B3F1C",
     hook: "#2A1A0E",
     volumeCm3: BEAM_VOLUME_WOOD_SMALL_CM3,
@@ -268,6 +277,7 @@ const BEAM_VARIANTS = {
   steel: {
     bodyFlat: "url(#beamSteelFlat)",
     bodyEdge: "url(#beamSteelEdge)",
+    bodyTexture: "url(#texBeamSteel)",
     wire: "#3A424A",
     hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_FULL_CM3,
@@ -277,6 +287,7 @@ const BEAM_VARIANTS = {
   steelSmall: {
     bodyFlat: "url(#beamSteelFlat)",
     bodyEdge: "url(#beamSteelEdge)",
+    bodyTexture: "url(#texBeamSteel)",
     wire: "#3A424A",
     hook: "#1F2429",
     volumeCm3: BEAM_VOLUME_SMALL_CM3,
@@ -506,17 +517,20 @@ function applyBeamFlatGeometry(variant) {
   if (!beamFlatEl) return;
 
   const body = beamFlatEl.querySelector(".beam-body");
+  const texture = beamFlatEl.querySelector(".beam-texture");
   const wire = beamFlatEl.querySelector(".beam-wire");
   if (!body || !wire) return;
 
   if (usesWoodSmallFlatGeometry()) {
     body.setAttribute("d", WOOD_SMALL_BEAM_FLAT_BODY);
+    texture?.setAttribute("d", WOOD_SMALL_BEAM_FLAT_BODY);
     wire.setAttribute("d", WOOD_SMALL_BEAM_FLAT_WIRE);
     wire.setAttribute("stroke-width", String(WOOD_SMALL_BEAM_FLAT_WIRE_WIDTH));
     return;
   }
 
   body.setAttribute("d", FULL_BEAM_FLAT_BODY);
+  texture?.setAttribute("d", FULL_BEAM_FLAT_BODY);
   wire.setAttribute("d", FULL_BEAM_FLAT_WIRE);
   wire.setAttribute("stroke-width", String(FULL_BEAM_FLAT_WIRE_WIDTH));
 }
@@ -957,6 +971,9 @@ function applyBeamMaterialToRoot(root, material, bodyFill) {
   for (const el of root.querySelectorAll(".beam-body")) {
     el.setAttribute("fill", bodyFill);
   }
+  for (const el of root.querySelectorAll(".beam-texture")) {
+    el.setAttribute("fill", material.bodyTexture);
+  }
   for (const el of root.querySelectorAll(".beam-wire")) {
     el.setAttribute("stroke", material.wire);
   }
@@ -1069,11 +1086,14 @@ function applySurface() {
 
   if (padEl) {
     padEl.setAttribute("aria-label", surface.padLabel);
-    const paths = padEl.querySelectorAll(":scope > path");
-    paths.forEach((path, index) => {
+    const faces = padEl.querySelectorAll(".pad-face");
+    faces.forEach((path, index) => {
       path.setAttribute("fill", surface.padFills[index] ?? surface.padFills[1]);
       path.setAttribute("stroke", surface.padStroke);
     });
+    for (const path of padEl.querySelectorAll(".pad-texture")) {
+      path.setAttribute("fill", surface.padTexture);
+    }
   }
 
   if (stageEl) {
@@ -1647,7 +1667,7 @@ function refreshMuEditorIfOpen() {
 }
 
 async function init() {
-  const assetVersion = "20260721-weight-arrow-80n-shorter";
+  const assetVersion = "20260721-material-textures";
   const [sceneResponse, morphResponse, weightResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
