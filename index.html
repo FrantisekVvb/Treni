@@ -20,22 +20,22 @@
         <span class="panel-label">Povrch podložky</span>
         <div class="panel-btn-grid" role="group" aria-label="Povrch podložky">
           <button type="button" class="scene-btn" data-surface-type="metal" aria-pressed="true">
-            Kov
+            kov
           </button>
           <button type="button" class="scene-btn" data-surface-type="leather" aria-pressed="false">
-            Kůže
+            kůže
           </button>
           <button type="button" class="scene-btn" data-surface-type="carpet" aria-pressed="false">
-            Koberec
+            koberec
           </button>
           <button type="button" class="scene-btn" data-surface-type="wood" aria-pressed="false">
-            Dřevo
+            dřevo
           </button>
           <button type="button" class="scene-btn" data-surface-type="ice" aria-pressed="false">
-            Led
+            led
           </button>
           <button type="button" class="scene-btn" data-surface-type="rubber" aria-pressed="false">
-            Guma
+            guma
           </button>
         </div>
       </div>
@@ -45,28 +45,28 @@
 
         <div class="beam-picker">
           <div class="beam-picker__block">
-            <p class="beam-picker__title">Dřevěný hranol</p>
+            <p class="beam-picker__title">dřevěný hranol</p>
             <div class="panel-btn-grid panel-btn-grid--sizes-3" role="group" aria-label="Velikost dřevěného hranolu">
               <button type="button" class="scene-btn scene-btn--size" data-beam-type="woodSmall" aria-pressed="false">
-                Malý
+                malý
               </button>
               <button type="button" class="scene-btn scene-btn--size" data-beam-type="wood" aria-pressed="true">
-                Střední
+                střední
               </button>
               <button type="button" class="scene-btn scene-btn--size" data-beam-type="wood2kg" aria-pressed="false">
-                Velký
+                velký
               </button>
             </div>
           </div>
 
           <div class="beam-picker__block">
-            <p class="beam-picker__title">Ocelový hranol</p>
+            <p class="beam-picker__title">ocelový hranol</p>
             <div class="panel-btn-grid panel-btn-grid--sizes-2" role="group" aria-label="Velikost ocelového hranolu">
               <button type="button" class="scene-btn scene-btn--size" data-beam-type="steelSmall" aria-pressed="false">
-                Malý
+                malý
               </button>
               <button type="button" class="scene-btn scene-btn--size" data-beam-type="steel" aria-pressed="false">
-                Velký
+                velký
               </button>
             </div>
           </div>
@@ -82,13 +82,13 @@
           aria-expanded="false"
           aria-controls="muEditor"
         >
-          Koeficient smykového tření
+          koeficient smykového tření
         </button>
 
         <div class="mu-editor" id="muEditor" hidden>
-          <p class="mu-editor__pair" id="muPairLabel">Dřevo – kov</p>
+          <p class="mu-editor__pair" id="muPairLabel">dřevo – kov</p>
           <div class="mu-editor__row">
-            <span class="mu-editor__label">μ<sub>k</sub> =</span>
+            <span class="mu-editor__label"><em>f</em> =</span>
             <span class="mu-editor__field">
               <input
                 type="text"
@@ -96,7 +96,7 @@
                 id="muInput"
                 inputmode="decimal"
                 autocomplete="off"
-                aria-label="Koeficient smykového tření"
+                aria-label="koeficient smykového tření"
               />
             </span>
             <button type="button" class="scene-btn mu-editor__ok" id="muOkBtn">OK</button>
@@ -132,14 +132,14 @@
       <div class="scene-stage">
         <div class="pad-wrap" id="padWrap"></div>
         <div class="scene-meta" id="beamMassEl">
-          <p class="scene-meta__line">Tíha = 6 N</p>
-          <p class="scene-meta__line">Objem = 1&nbsp;000 cm³</p>
-          <p class="scene-meta__line">Velikost třecí plochy = 191&nbsp;cm²</p>
+          <p class="scene-meta__line">tíha = 6 N</p>
+          <p class="scene-meta__line">objem = 1&nbsp;000 cm³</p>
+          <p class="scene-meta__line">velikost třecí plochy = 191&nbsp;cm²</p>
         </div>
         <div class="scene-actions">
-          <button type="button" class="scene-btn scene-btn--reset" id="resetBtn">Vrátit na původní pozici</button>
+          <button type="button" class="scene-btn scene-btn--reset" id="resetBtn">vrátit na původní pozici</button>
           <button type="button" class="scene-btn scene-btn--flip" id="flipBeamBtn" aria-pressed="false">
-            Otočit hranol
+            otočit hranol
           </button>
         </div>
       </div>
