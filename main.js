@@ -15,6 +15,8 @@ const muCloseBtn = document.getElementById("muCloseBtn");
 const muFeedbackEl = document.getElementById("muFeedback");
 const mathKeypadEl = document.getElementById("mathKeypad");
 
+const TABLET_INPUT_MEDIA_QUERY = "(hover: none) and (pointer: coarse)";
+
 if (!padWrap) {
   throw new Error("Chybí základní prvky scény.");
 }
@@ -1559,6 +1561,18 @@ function showMuFeedback(message, kind) {
   muFeedbackEl.classList.toggle("is-error", kind === "error");
 }
 
+function shouldSuppressNativeKeyboard() {
+  return window.matchMedia(TABLET_INPUT_MEDIA_QUERY).matches;
+}
+
+function syncMuInputKeyboardPolicy() {
+  if (!muInputEl) return;
+
+  const suppressNativeKeyboard = shouldSuppressNativeKeyboard();
+  muInputEl.readOnly = suppressNativeKeyboard;
+  muInputEl.inputMode = suppressNativeKeyboard ? "none" : "decimal";
+}
+
 function syncMuEditorContent() {
   if (!muPairLabelEl || !muInputEl) return;
   muPairLabelEl.textContent = muPairLabelText();
@@ -1580,7 +1594,8 @@ function setMuEditorOpen(open) {
   }
   if (open) {
     syncMuEditorContent();
-    muInputEl?.focus();
+    syncMuInputKeyboardPolicy();
+    muInputEl?.focus({ preventScroll: true });
   } else {
     clearMuFeedback();
   }
@@ -1660,6 +1675,8 @@ function bindMuEditor() {
   muEditorToggleBtn.addEventListener("click", toggleMuEditor);
   muOkBtn.addEventListener("click", verifyMuInput);
   muCloseBtn?.addEventListener("click", () => setMuEditorOpen(false));
+  syncMuInputKeyboardPolicy();
+  window.addEventListener("resize", syncMuInputKeyboardPolicy);
   muInputEl.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
