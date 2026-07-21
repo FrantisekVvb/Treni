@@ -149,6 +149,17 @@ button {
   font-size: 0.85rem;
 }
 
+.setup-panel__home {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-height: 0;
+}
+
+.setup-panel__home[hidden] {
+  display: none !important;
+}
+
 .scene-btn--block {
   width: 100%;
 }
@@ -230,6 +241,24 @@ button {
   border-color: var(--accent-hover);
   background: var(--accent-hover);
   color: #ffffff;
+}
+
+.mu-editor__close {
+  flex: 0 0 auto;
+  min-width: 2.6rem;
+  padding: 0.35rem 0.55rem;
+  border-color: var(--border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mu-editor__close:hover {
+  border-color: var(--muted);
+  background: var(--area-muted);
+  color: var(--text);
 }
 
 .mu-editor__feedback {

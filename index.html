@@ -12,6 +12,7 @@
 <body>
   <main class="scene" aria-label="Simulace tření">
     <aside class="setup-panel" aria-label="Nastavení simulace">
+      <div class="setup-panel__home" id="setupPanelHome">
       <div class="panel-copy">
         <h1 class="panel-title">Tření</h1>
       </div>
@@ -74,6 +75,7 @@
       </div>
 
       <div class="panel-section">
+        <span class="panel-label">výpočet</span>
         <button
           type="button"
           class="scene-btn scene-btn--block"
@@ -84,8 +86,10 @@
         >
           koeficient smykového tření
         </button>
+      </div>
+      </div>
 
-        <div class="mu-editor" id="muEditor" hidden>
+      <div class="mu-editor" id="muEditor" hidden>
           <p class="mu-editor__pair" id="muPairLabel">dřevo – kov</p>
           <div class="mu-editor__row">
             <span class="mu-editor__label"><em>f</em> =</span>
@@ -100,6 +104,14 @@
               />
             </span>
             <button type="button" class="scene-btn mu-editor__ok" id="muOkBtn">OK</button>
+            <button
+              type="button"
+              class="scene-btn mu-editor__close"
+              id="muCloseBtn"
+              aria-label="zavřít klávesnici"
+            >
+              ×
+            </button>
           </div>
           <span class="mu-editor__feedback" id="muFeedback" hidden></span>
 
@@ -125,7 +137,6 @@
             </button>
           </div>
         </div>
-      </div>
     </aside>
 
     <div class="scene-workspace" id="stage" aria-label="Kovová podložka s dřevěným hranolem">

@@ -7,9 +7,11 @@ const surfaceBtnEls = [...document.querySelectorAll("[data-surface-type]")];
 const beamMassEl = document.getElementById("beamMassEl");
 const muEditorToggleBtn = document.getElementById("muEditorToggleBtn");
 const muEditorEl = document.getElementById("muEditor");
+const setupPanelHomeEl = document.getElementById("setupPanelHome");
 const muPairLabelEl = document.getElementById("muPairLabel");
 const muInputEl = document.getElementById("muInput");
 const muOkBtn = document.getElementById("muOkBtn");
+const muCloseBtn = document.getElementById("muCloseBtn");
 const muFeedbackEl = document.getElementById("muFeedback");
 const mathKeypadEl = document.getElementById("mathKeypad");
 
@@ -1570,6 +1572,9 @@ function setMuEditorOpen(open) {
     muEditorToggleBtn.setAttribute("aria-pressed", String(open));
     muEditorToggleBtn.setAttribute("aria-expanded", String(open));
   }
+  if (setupPanelHomeEl) {
+    setupPanelHomeEl.hidden = open;
+  }
   if (muEditorEl) {
     muEditorEl.hidden = !open;
   }
@@ -1648,14 +1653,21 @@ function onMathKeypadClick(event) {
 }
 
 function bindMuEditor() {
-  if (!muEditorToggleBtn || !muEditorEl || !muInputEl || !muOkBtn || !mathKeypadEl) return;
+  if (!muEditorToggleBtn || !muEditorEl || !muInputEl || !muOkBtn || !mathKeypadEl) {
+    return;
+  }
 
   muEditorToggleBtn.addEventListener("click", toggleMuEditor);
   muOkBtn.addEventListener("click", verifyMuInput);
+  muCloseBtn?.addEventListener("click", () => setMuEditorOpen(false));
   muInputEl.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       verifyMuInput();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setMuEditorOpen(false);
     }
   });
   mathKeypadEl.addEventListener("click", onMathKeypadClick);
