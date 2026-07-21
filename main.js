@@ -156,7 +156,7 @@ const FULL_BEAM_FLAT_WIRE_WIDTH = 1.5;
 
 const SURFACE_VARIANTS = {
   metal: {
-    label: "Kov",
+    label: "kov",
     stageLabel: "kovová podložka",
     padLabel: "Kovová podložka",
     muKinetic: { wood: MU_K_METAL_WOOD, steel: MU_K_METAL_STEEL },
@@ -169,7 +169,7 @@ const SURFACE_VARIANTS = {
     padStroke: "#2F363E",
   },
   leather: {
-    label: "Kůže",
+    label: "kůže",
     stageLabel: "kožená podložka",
     padLabel: "Kožená podložka",
     muKinetic: { wood: MU_K_LEATHER_WOOD, steel: MU_K_LEATHER_STEEL },
@@ -182,7 +182,7 @@ const SURFACE_VARIANTS = {
     padStroke: "#3A2418",
   },
   carpet: {
-    label: "Koberec",
+    label: "koberec",
     stageLabel: "kobercová podložka",
     padLabel: "Kobercová podložka",
     muKinetic: { wood: MU_K_CARPET, steel: MU_K_CARPET },
@@ -195,7 +195,7 @@ const SURFACE_VARIANTS = {
     padStroke: "#2F3D2A",
   },
   wood: {
-    label: "Dřevo",
+    label: "dřevo",
     stageLabel: "dřevěná podložka",
     padLabel: "Dřevěná podložka",
     muKinetic: { wood: MU_K_WOOD_WOOD, steel: MU_K_METAL_WOOD },
@@ -208,7 +208,7 @@ const SURFACE_VARIANTS = {
     padStroke: "#5C3D1E",
   },
   ice: {
-    label: "Led",
+    label: "led",
     stageLabel: "ledová podložka",
     padLabel: "Ledová podložka",
     muKinetic: { wood: MU_K_ICE, steel: MU_K_ICE },
@@ -221,7 +221,7 @@ const SURFACE_VARIANTS = {
     padStroke: "#6A8FA8",
   },
   rubber: {
-    label: "Guma",
+    label: "guma",
     stageLabel: "gumová podložka",
     padLabel: "Gumová podložka",
     muKinetic: { wood: MU_K_RUBBER, steel: MU_K_RUBBER },
@@ -369,7 +369,7 @@ function defaultMuKinetic() {
 
 function muPairLabelText() {
   const surface = activeSurfaceVariant();
-  return `${beamMaterialLabel()} – ${surface.label.toLowerCase()}`;
+  return `${beamMaterialLabel().toLowerCase()} – ${surface.label.toLowerCase()}`;
 }
 
 function beamMuKinetic() {
@@ -1131,7 +1131,7 @@ function applyBeamMaterial() {
   );
 
   if (beamMassEl) {
-    beamMassEl.innerHTML = `<p class="scene-meta__line">Tíha = ${formatBeamWeight(variant.massG)}</p><p class="scene-meta__line">Objem = ${formatBeamVolume(variant.volumeCm3)}</p><p class="scene-meta__line">Velikost třecí plochy = ${formatBeamFrictionArea(beamFrictionAreaCm2())}</p>`;
+    beamMassEl.innerHTML = `<p class="scene-meta__line">tíha = ${formatBeamWeight(variant.massG)}</p><p class="scene-meta__line">objem = ${formatBeamVolume(variant.volumeCm3)}</p><p class="scene-meta__line">velikost třecí plochy = ${formatBeamFrictionArea(beamFrictionAreaCm2())}</p>`;
   }
 
   updateBeamButtons();
