@@ -6,7 +6,7 @@ Interaktivní simulace tření.
 
 **https://frantisekvvb.github.io/Treni/**
 
-(Odkaz funguje po nasazení z větve `main` na GitHub Pages.)
+Jednorázově v repozitáři zapni **Settings → Pages → Build and deployment → Deploy from a branch**, větev **gh-pages**, složka **/(root)**. Po pushi na `main` se obsah nasadí automaticky (workflow *Deploy GitHub Pages*).
 
 ## Spuštění lokálně
 
