@@ -123,23 +123,36 @@ const FLAT_HOOK_SILOMER = { x: 373.25, y: 90.75 };
 const EDGE_HOOK_ATTACH = { x: 425.75, y: 122.771 };
 const EDGE_HOOK_SILOMER = { x: 399.25, y: 129.271 };
 const WEIGHT_ARROW_SHAFT_TOP = 0;
-const WEIGHT_ARROW_SHAFT_BOTTOM = 388.5;
-const WEIGHT_ARROW_HEAD_TIP = 391.682;
-const WEIGHT_ARROW_LABEL_X = 89.5;
-const WEIGHT_ARROW_LABEL_Y = 382.136;
-const WEIGHT_ARROW_SHAFT_X = 33.1378;
-const WEIGHT_ARROW_FIGMA_REF_LENGTH = 391.682;
-/** Referenční tíha středního dřevěného hranolu — základní délka šipky */
-const BEAM_WEIGHT_ARROW_REF_N = (WOOD_MASS_G / 1000) * GRAVITY;
-const WEIGHT_ARROW_BASE_LENGTH =
-  WEIGHT_ARROW_FIGMA_REF_LENGTH - WEIGHT_ARROW_SHAFT_TOP;
-/** Stejná vizuální délka jako dříve (Figma šablona je ~3× vyšší) */
-const WEIGHT_ARROW_LENGTH_SCALE =
-  ((1 / 3) * (5 / 4) * (2 / 3) * 130.561) / WEIGHT_ARROW_FIGMA_REF_LENGTH;
-/** Tloušťka šipky — širší tělo a hrot, délka beze změny */
-const WEIGHT_ARROW_BOLD_SCALE = 2;
-const WEIGHT_ARROW_LABEL_PX = 24;
+/** Původní Figma délka těla při 3 N — šablona hrotu/popisku je k ní navázaná */
+const WEIGHT_ARROW_FIGMA_SHAFT_LENGTH = 29;
+/** Délky šipek zkráceny o 1/3 oproti Figmě */
+const WEIGHT_ARROW_LENGTH_FACTOR = 2 / 3;
+const WEIGHT_ARROW_SHAFT_BOTTOM =
+  WEIGHT_ARROW_FIGMA_SHAFT_LENGTH * WEIGHT_ARROW_LENGTH_FACTOR;
+const WEIGHT_ARROW_LABEL_X = 29 + 18;
+const WEIGHT_ARROW_LABEL_Y =
+  24.5 + (WEIGHT_ARROW_SHAFT_BOTTOM - WEIGHT_ARROW_FIGMA_SHAFT_LENGTH);
+const WEIGHT_ARROW_SHAFT_X = 0;
+const WEIGHT_ARROW_SHAFT_HALF_WIDTH = 1.5;
+const WEIGHT_ARROW_FIGMA_REF_LENGTH = WEIGHT_ARROW_SHAFT_BOTTOM;
+const BEAM_WEIGHT_ARROW_REF_N = 3;
+const WEIGHT_ARROW_BASE_LENGTH = WEIGHT_ARROW_FIGMA_REF_LENGTH;
+const WEIGHT_ARROW_LABEL_PX = 26;
+const WEIGHT_ARROW_LABEL_FONT =
+  "Fenomen Sans, ui-sans-serif, system-ui, sans-serif";
 const WEIGHT_ARROW_COLOR = "#FF5F5F";
+/** Malý dřevěný hranol — pevná geometrie z Figmy (bez scale transform) */
+const WOOD_SMALL_FLAT_BEAM_WEIGHT_ANCHOR = { x: 534.5, y: 120.5 };
+const WOOD_SMALL_BEAM_FLAT_BODY =
+  "M611.2 108.189L460 132L376.066 97.8709V55.2095L526.671 31.3984L611.2 65.5276V108.189Z";
+const WOOD_SMALL_BEAM_FLAT_WIRE =
+  "M460 132L611.2 108.189V65.5276L526.671 31.3984L376.066 55.2095V97.8709L460 132ZM376.066 55.2095L460 89.3386M611.2 65.5276L460 89.3386M460 132V89.3386";
+const WOOD_SMALL_BEAM_FLAT_WIRE_WIDTH = 1.19055;
+const FULL_BEAM_FLAT_BODY =
+  "M 650.5 102 L 460 131.9996 L 354.25 89 V 35.25 L 544 5.25 L 650.5 48.25 V 102 Z";
+const FULL_BEAM_FLAT_WIRE =
+  "M 354.25 35.25 L 544 5.25 L 650.5 48.25 V 102 L 460 131.9996 L 354.25 89 V 35.25 Z M 460 131.9996 V 78.25 M 460 78.25 L 650.5 48.25 M 460 78.25 L 354.25 35.25";
+const FULL_BEAM_FLAT_WIRE_WIDTH = 1.5;
 
 const SURFACE_VARIANTS = {
   metal: {
@@ -456,9 +469,56 @@ function getWeightArrowExtension(heightUnits) {
   return WEIGHT_ARROW_BASE_LENGTH * Math.max(0, heightUnits - 1);
 }
 
+/** Celková délka těla šipky — u 80 N zkrácena o 5 % */
+function resolveWeightArrowExtension(heightUnits, weightN) {
+  const extension = getWeightArrowExtension(heightUnits);
+  if (Math.abs(weightN - 80) >= 0.05) return extension;
+
+  const totalLength = WEIGHT_ARROW_SHAFT_BOTTOM + extension;
+  return totalLength * 0.95 - WEIGHT_ARROW_SHAFT_BOTTOM;
+}
+
 function buildWeightArrowShaftPath(extension) {
   const shaftBottom = WEIGHT_ARROW_SHAFT_BOTTOM + extension;
-  return `M33.1378 0H28.6378V${shaftBottom}H33.1378H37.6378V0H33.1378Z`;
+  const x = WEIGHT_ARROW_SHAFT_X;
+  const w = WEIGHT_ARROW_SHAFT_HALF_WIDTH;
+  return `M${x} ${WEIGHT_ARROW_SHAFT_TOP}H${x - w}V${shaftBottom}H${x}H${x + w}V${WEIGHT_ARROW_SHAFT_TOP}H${x}Z`;
+}
+
+function flatBeamWeightAnchor(variant) {
+  if (beamType === "woodSmall") {
+    return WOOD_SMALL_FLAT_BEAM_WEIGHT_ANCHOR;
+  }
+  const scale = volumeLinearScale(variant.volumeCm3);
+  return scaledPoint(FLAT_BEAM_WEIGHT_ANCHOR, scale, FLAT_BEAM_SCALE_ORIGIN);
+}
+
+function edgeBeamWeightAnchor(variant) {
+  const scale = volumeLinearScale(variant.volumeCm3);
+  return scaledPoint(EDGE_BEAM_WEIGHT_ANCHOR, scale, EDGE_BEAM_SCALE_ORIGIN);
+}
+
+function usesWoodSmallFlatGeometry() {
+  return beamType === "woodSmall";
+}
+
+function applyBeamFlatGeometry(variant) {
+  if (!beamFlatEl) return;
+
+  const body = beamFlatEl.querySelector(".beam-body");
+  const wire = beamFlatEl.querySelector(".beam-wire");
+  if (!body || !wire) return;
+
+  if (usesWoodSmallFlatGeometry()) {
+    body.setAttribute("d", WOOD_SMALL_BEAM_FLAT_BODY);
+    wire.setAttribute("d", WOOD_SMALL_BEAM_FLAT_WIRE);
+    wire.setAttribute("stroke-width", String(WOOD_SMALL_BEAM_FLAT_WIRE_WIDTH));
+    return;
+  }
+
+  body.setAttribute("d", FULL_BEAM_FLAT_BODY);
+  wire.setAttribute("d", FULL_BEAM_FLAT_WIRE);
+  wire.setAttribute("stroke-width", String(FULL_BEAM_FLAT_WIRE_WIDTH));
 }
 
 function ensureBeamWeightArrow(root) {
@@ -476,12 +536,10 @@ function ensureBeamWeightArrow(root) {
 function renderBeamWeightArrow(group, anchor, weightN, heightUnits) {
   if (!weightDisplayTemplate) return;
 
-  const extension = getWeightArrowExtension(heightUnits);
-  const arrowScaleX = WEIGHT_ARROW_BOLD_SCALE * WEIGHT_ARROW_LENGTH_SCALE;
-  const arrowScaleY = WEIGHT_ARROW_LENGTH_SCALE;
+  const extension = resolveWeightArrowExtension(heightUnits, weightN);
   group.setAttribute(
     "transform",
-    `translate(${anchor.x} ${anchor.y}) scale(${arrowScaleX} ${arrowScaleY}) translate(${-WEIGHT_ARROW_SHAFT_X} ${-WEIGHT_ARROW_SHAFT_TOP})`
+    `translate(${anchor.x} ${anchor.y}) translate(${-WEIGHT_ARROW_SHAFT_X} ${-WEIGHT_ARROW_SHAFT_TOP})`
   );
 
   const wrapper = document.createElement("div");
@@ -507,14 +565,17 @@ function renderBeamWeightArrow(group, anchor, weightN, heightUnits) {
 
   if (head) {
     head.setAttribute("fill", WEIGHT_ARROW_COLOR);
-    if (extension > 0) {
-      head.setAttribute("transform", `translate(0 ${extension})`);
+    const headOffsetY =
+      WEIGHT_ARROW_SHAFT_BOTTOM - WEIGHT_ARROW_FIGMA_SHAFT_LENGTH + extension;
+    if (headOffsetY !== 0) {
+      head.setAttribute("transform", `translate(0 ${headOffsetY})`);
     } else {
       head.removeAttribute("transform");
     }
   }
 
   group.querySelector(".weight-display__label-text")?.remove();
+  group.querySelector(".weight-display__label-path")?.remove();
 
   const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
   text.setAttribute("x", String(WEIGHT_ARROW_LABEL_X));
@@ -523,8 +584,9 @@ function renderBeamWeightArrow(group, anchor, weightN, heightUnits) {
   text.setAttribute("dominant-baseline", "middle");
   text.setAttribute("class", "weight-display__label-text");
   text.setAttribute("fill", WEIGHT_ARROW_COLOR);
+  text.setAttribute("font-family", WEIGHT_ARROW_LABEL_FONT);
   text.setAttribute("font-weight", "600");
-  text.setAttribute("font-size", String(WEIGHT_ARROW_LABEL_PX / arrowScaleY));
+  text.setAttribute("font-size", String(WEIGHT_ARROW_LABEL_PX));
   text.textContent = formatWeightLabel(weightN);
   group.appendChild(text);
 }
@@ -539,19 +601,19 @@ function updateBeamWeightArrows() {
   const weightN = (variant.massG / 1000) * GRAVITY;
   const heightUnits = beamWeightHeightUnits(weightN);
 
-  if (beamFlatEl) {
+  if (flatSceneEl) {
     renderBeamWeightArrow(
-      ensureBeamWeightArrow(beamFlatEl),
-      FLAT_BEAM_WEIGHT_ANCHOR,
+      ensureBeamWeightArrow(flatSceneEl),
+      flatBeamWeightAnchor(variant),
       weightN,
       heightUnits
     );
   }
 
-  if (beamEdgeEl) {
+  if (edgeSceneEl) {
     renderBeamWeightArrow(
-      ensureBeamWeightArrow(beamEdgeEl),
-      EDGE_BEAM_WEIGHT_ANCHOR,
+      ensureBeamWeightArrow(edgeSceneEl),
+      edgeBeamWeightAnchor(variant),
       weightN,
       heightUnits
     );
@@ -1038,12 +1100,14 @@ function applyBeamMaterial() {
     EDGE_HOOK_ATTACH
   );
 
+  applyBeamFlatGeometry(variant);
   applyBeamMaterialToRoot(beamFlatEl, variant, variant.bodyFlat);
   applyBeamMaterialToRoot(beamEdgeEl, variant, variant.bodyEdge);
   applyBeamMaterialToRoot(beamHookFlatEl, variant, variant.bodyFlat);
   applyBeamMaterialToRoot(beamHookEdgeEl, variant, variant.bodyEdge);
 
-  applyBeamScaleToRoot(beamFlatEl, scale, FLAT_BEAM_SCALE_ORIGIN);
+  const flatScale = usesWoodSmallFlatGeometry() ? 1 : scale;
+  applyBeamScaleToRoot(beamFlatEl, flatScale, FLAT_BEAM_SCALE_ORIGIN);
   applyBeamScaleToRoot(beamEdgeEl, scale, EDGE_BEAM_SCALE_ORIGIN);
 
   applySilomerOffset(silomerFlatEl, flatOffset);
@@ -1559,7 +1623,7 @@ function refreshMuEditorIfOpen() {
 }
 
 async function init() {
-  const assetVersion = "20260721-figma-weight-arrow";
+  const assetVersion = "20260721-weight-arrow-80n-shorter";
   const [sceneResponse, morphResponse, weightResponse] = await Promise.all([
     fetch(`assets/scene.svg?v=${assetVersion}`, { cache: "no-store" }),
     fetch(`assets/spring-morph.json?v=${assetVersion}`, { cache: "no-store" }),
@@ -1606,6 +1670,9 @@ async function init() {
   );
   silomerHintFlatEl = createSilomerHandleHint(silomerFlatEl);
   silomerHintEdgeEl = createSilomerHandleHint(silomerEdgeEl);
+
+  beamFlatEl?.querySelector(".beam-weight-arrow")?.remove();
+  beamEdgeEl?.querySelector(".beam-weight-arrow")?.remove();
 
   if (
     !padEl ||
