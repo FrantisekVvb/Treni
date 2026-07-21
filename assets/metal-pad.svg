@@ -1,0 +1,27 @@
+<svg width="900" height="280" viewBox="0 0 900 280" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="metalTop" x1="80" y1="40" x2="780" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C8CDD4"/>
+      <stop offset="0.45" stop-color="#A8B0BA"/>
+      <stop offset="1" stop-color="#8E96A1"/>
+    </linearGradient>
+    <linearGradient id="metalFront" x1="60" y1="180" x2="700" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7A828C"/>
+      <stop offset="1" stop-color="#5E666F"/>
+    </linearGradient>
+    <linearGradient id="metalSide" x1="700" y1="80" x2="860" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B737D"/>
+      <stop offset="1" stop-color="#4F575F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Top face — wide plate -->
+  <path d="M70 120 L620 40 L830 120 L280 200 Z" fill="url(#metalTop)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Left front end -->
+  <path d="M70 120 L280 200 L280 245 L70 165 Z" fill="url(#metalFront)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Long front face -->
+  <path d="M280 200 L830 120 L830 165 L280 245 Z" fill="url(#metalFront)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Right end -->
+  <path d="M620 40 L830 120 L830 165 L620 85 Z" fill="url(#metalSide)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+
+</svg>
