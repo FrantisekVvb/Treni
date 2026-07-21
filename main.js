@@ -1490,6 +1490,30 @@ function bindResetButton() {
   resetBtn.addEventListener("click", resetScene);
 }
 
+function isBrokenSilomerMessageVisible() {
+  return springBroken && springRecoilT >= 0.999;
+}
+
+function bindWorkspaceBrokenDismiss() {
+  if (!stageEl) return;
+
+  stageEl.addEventListener("pointerdown", (event) => {
+    if (!isBrokenSilomerMessageVisible()) return;
+    if (event.button !== undefined && event.button !== 0) return;
+
+    if (
+      event.target.closest(
+        "button, input, textarea, select, a, label, [role='slider']"
+      )
+    ) {
+      return;
+    }
+
+    resetScene();
+    event.preventDefault();
+  });
+}
+
 function parseNumberInput(value) {
   const normalized = value.trim().replace(",", ".");
   if (!normalized) return null;
@@ -1702,6 +1726,7 @@ async function init() {
   bindBeamButtons();
   bindFlipButton();
   bindResetButton();
+  bindWorkspaceBrokenDismiss();
   bindMuEditor();
   applyBeamOrientation();
   applyBeamMaterial();
