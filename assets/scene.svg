@@ -125,18 +125,71 @@
   <stop stop-color="#424242"/>
   <stop offset="1" stop-color="#282828"/>
 </linearGradient>
+<pattern id="texMetal" patternUnits="userSpaceOnUse" width="14" height="8" patternTransform="rotate(-8)">
+  <path d="M0 1.5H14M0 4.5H14M0 7.2H14" stroke="#1A1F24" stroke-width="0.55" opacity="0.28"/>
+  <path d="M0 2.8H14M0 5.9H14" stroke="#F4F7FA" stroke-width="0.4" opacity="0.18"/>
+</pattern>
+<pattern id="texLeather" patternUnits="userSpaceOnUse" width="18" height="14">
+  <ellipse cx="4" cy="3.5" rx="1.1" ry="0.8" fill="#2A160C" opacity="0.22"/>
+  <ellipse cx="12" cy="2" rx="0.9" ry="0.7" fill="#2A160C" opacity="0.18"/>
+  <ellipse cx="9" cy="8" rx="1.3" ry="0.9" fill="#2A160C" opacity="0.2"/>
+  <ellipse cx="2.5" cy="10.5" rx="0.8" ry="0.6" fill="#2A160C" opacity="0.16"/>
+  <ellipse cx="15" cy="11" rx="1" ry="0.75" fill="#2A160C" opacity="0.2"/>
+  <path d="M1 6.5C4 5.2 7 7.5 10 6.2C13 5 16 7 17.5 6" stroke="#3A2214" stroke-width="0.55" fill="none" opacity="0.2"/>
+</pattern>
+<pattern id="texCarpet" patternUnits="userSpaceOnUse" width="10" height="10">
+  <path d="M1 2V5M3.5 1V4.5M6 2.5V6M8.5 1.5V5M2 6.5V9.5M4.5 7V10M7 6V9M9.2 7.5V10" stroke="#1E2A18" stroke-width="1.05" stroke-linecap="round" opacity="0.28"/>
+  <path d="M0.5 8H2.5M5 3H7M8 8.5H10" stroke="#D7E8C8" stroke-width="0.55" stroke-linecap="round" opacity="0.12"/>
+</pattern>
+<pattern id="texWood" patternUnits="userSpaceOnUse" width="42" height="18" patternTransform="rotate(-8.5)">
+  <path d="M0 3C8 1.5 14 4.5 21 3C28 1.5 35 4 42 2.5" stroke="#5C3A18" stroke-width="0.9" fill="none" opacity="0.28"/>
+  <path d="M0 8C7 6.5 15 9.5 22 8C30 6.2 36 9 42 7.5" stroke="#5C3A18" stroke-width="0.7" fill="none" opacity="0.22"/>
+  <path d="M0 13C9 11.5 16 14.5 24 13C32 11.5 37 14 42 12.5" stroke="#5C3A18" stroke-width="0.8" fill="none" opacity="0.25"/>
+  <path d="M0 16.5C10 15.5 18 17 27 16C34 15.2 39 16.8 42 16" stroke="#8B5A2B" stroke-width="0.55" fill="none" opacity="0.18"/>
+  <ellipse cx="12" cy="9" rx="2.2" ry="1.1" fill="#5C3A18" opacity="0.12"/>
+</pattern>
+<pattern id="texIce" patternUnits="userSpaceOnUse" width="28" height="20">
+  <path d="M2 4L9 1M12 8L20 3M4 14L11 10M16 16L24 11M7 18L14 14" stroke="#4A6F88" stroke-width="0.55" opacity="0.22"/>
+  <path d="M18 2L22 7M3 9L8 13M21 14L26 18" stroke="#FFFFFF" stroke-width="0.45" opacity="0.28"/>
+  <circle cx="6" cy="6" r="0.7" fill="#FFFFFF" opacity="0.35"/>
+  <circle cx="19" cy="12" r="0.55" fill="#FFFFFF" opacity="0.3"/>
+  <circle cx="13" cy="17" r="0.45" fill="#FFFFFF" opacity="0.25"/>
+</pattern>
+<pattern id="texRubber" patternUnits="userSpaceOnUse" width="12" height="12">
+  <circle cx="3" cy="3" r="1.55" fill="#0A0A0A" opacity="0.28"/>
+  <circle cx="9" cy="3" r="1.55" fill="#0A0A0A" opacity="0.28"/>
+  <circle cx="3" cy="9" r="1.55" fill="#0A0A0A" opacity="0.28"/>
+  <circle cx="9" cy="9" r="1.55" fill="#0A0A0A" opacity="0.28"/>
+  <circle cx="3" cy="3" r="0.55" fill="#6A6A6A" opacity="0.18"/>
+  <circle cx="9" cy="9" r="0.55" fill="#6A6A6A" opacity="0.18"/>
+</pattern>
+<pattern id="texBeamWood" patternUnits="userSpaceOnUse" width="36" height="16" patternTransform="rotate(-9)">
+  <path d="M0 2.5C7 1.2 13 3.8 18 2.5C24 1.2 30 3.5 36 2" stroke="#5C3A18" stroke-width="0.85" fill="none" opacity="0.32"/>
+  <path d="M0 7C8 5.5 14 8.5 20 7C27 5.5 32 8 36 6.5" stroke="#5C3A18" stroke-width="0.7" fill="none" opacity="0.26"/>
+  <path d="M0 11.5C9 10 15 13 22 11.5C29 10 33 12.5 36 11" stroke="#5C3A18" stroke-width="0.75" fill="none" opacity="0.28"/>
+  <path d="M0 14.5C10 13.5 18 15 26 14C31 13.4 34 14.8 36 14.2" stroke="#8B5A2B" stroke-width="0.5" fill="none" opacity="0.2"/>
+</pattern>
+<pattern id="texBeamSteel" patternUnits="userSpaceOnUse" width="12" height="7" patternTransform="rotate(-9)">
+  <path d="M0 1.2H12M0 3.5H12M0 5.8H12" stroke="#1F2429" stroke-width="0.45" opacity="0.22"/>
+  <path d="M0 2.4H12M0 4.7H12" stroke="#FFFFFF" stroke-width="0.35" opacity="0.16"/>
+</pattern>
 </defs>
 <g id="pad" aria-label="Kovová podložka">
-<path d="M551.25 21.25L761.25 101.25V146.25L551.25 66.25V21.25Z" fill="url(#paint0_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
-<path d="M1.25 101.25L681.25 1.25L891.25 81.25L211.25 181.25L1.25 101.25Z" fill="url(#paint1_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
-<path d="M1.25 101.25L211.25 181.25V226.25L1.25 146.25V101.25Z" fill="url(#paint2_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
-<path d="M211.25 181.25L891.25 81.25V126.25L211.25 226.25V181.25Z" fill="url(#paint3_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="pad-face" d="M551.25 21.25L761.25 101.25V146.25L551.25 66.25V21.25Z" fill="url(#paint0_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="pad-face" d="M1.25 101.25L681.25 1.25L891.25 81.25L211.25 181.25L1.25 101.25Z" fill="url(#paint1_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="pad-face" d="M1.25 101.25L211.25 181.25V226.25L1.25 146.25V101.25Z" fill="url(#paint2_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="pad-face" d="M211.25 181.25L891.25 81.25V126.25L211.25 226.25V181.25Z" fill="url(#paint3_linear_2095_869)" stroke="#3E4650" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="pad-texture" d="M551.25 21.25L761.25 101.25V146.25L551.25 66.25V21.25Z" fill="url(#texMetal)" pointer-events="none"/>
+<path class="pad-texture" d="M1.25 101.25L681.25 1.25L891.25 81.25L211.25 181.25L1.25 101.25Z" fill="url(#texMetal)" pointer-events="none"/>
+<path class="pad-texture" d="M1.25 101.25L211.25 181.25V226.25L1.25 146.25V101.25Z" fill="url(#texMetal)" pointer-events="none"/>
+<path class="pad-texture" d="M211.25 181.25L891.25 81.25V126.25L211.25 226.25V181.25Z" fill="url(#texMetal)" pointer-events="none"/>
 </g>
 <g id="rig">
 <g id="beam">
 <g id="flatScene">
 <g id="beamFlat">
 <path class="beam-body" d="M 650.5 102 L 460 131.9996 L 354.25 89 V 35.25 L 544 5.25 L 650.5 48.25 V 102 Z" fill="#F1A558"/>
+<path class="beam-texture" d="M 650.5 102 L 460 131.9996 L 354.25 89 V 35.25 L 544 5.25 L 650.5 48.25 V 102 Z" fill="url(#texBeamWood)" pointer-events="none"/>
 <path class="beam-wire" d="M 354.25 35.25 L 544 5.25 L 650.5 48.25 V 102 L 460 131.9996 L 354.25 89 V 35.25 Z M 460 131.9996 V 78.25 M 460 78.25 L 650.5 48.25 M 460 78.25 L 354.25 35.25" stroke="#5C3A18" stroke-width="1.5"/>
 </g>
 <g id="silomerFlat">
@@ -294,6 +347,7 @@
 <g id="edgeScene" style="display:none" transform="translate(0 -80.271)">
 <g id="beamEdge">
 <path class="beam-body" d="M450.701 189.113L642.555 159.113V17.7471L596.421 0.771484L406.25 30.7715V172.137L450.701 189.113Z" fill="#F1A558"/>
+<path class="beam-texture" d="M450.701 189.113L642.555 159.113V17.7471L596.421 0.771484L406.25 30.7715V172.137L450.701 189.113Z" fill="url(#texBeamWood)" pointer-events="none"/>
 <path class="beam-wire" d="M642.555 17.7471L450.701 47.7471M406.25 30.7715V172.137L450.701 189.113L642.555 159.113V17.7471L596.421 0.771484L406.25 30.7715ZM450.701 47.7471V189.113M450.701 47.7471L406.25 30.7715" stroke="#5C3A18" stroke-width="1.5"/>
 </g>
 <g id="silomerEdge">
